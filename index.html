@@ -1,0 +1,2066 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Романтический QR-квест — 18 карточек A6</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Marck+Script&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --paper: #fffdf8;
+      --ink: #47241d;
+      --ink-b: #3d1b26;
+      --wine: #791c3a;
+      --wine-deep: #58102b;
+      --gold: #c8a24b;
+      --gold-light: #ffe08a;
+      --gold-dark: #8b5f1c;
+      --rose: #e8548c;
+      --coral: #ff8f6b;
+      --lilac: #b57edc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% 8%, rgba(232, 84, 140, 0.20), transparent 30%),
+        radial-gradient(circle at 85% 15%, rgba(255, 224, 138, 0.22), transparent 26%),
+        radial-gradient(circle at 50% 85%, rgba(181, 126, 220, 0.16), transparent 32%),
+        #efe7e2;
+      color: var(--ink);
+      font-family: 'PT Serif', Georgia, serif;
+      min-height: 100vh;
+    }
+
+    body.mobile-mode {
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255, 187, 210, 0.35), transparent 30%),
+        radial-gradient(circle at 80% 20%, rgba(255, 224, 138, 0.30), transparent 28%),
+        linear-gradient(160deg, #4b1023 0%, #7d1e42 42%, #b65276 100%);
+      color: #fff7f1;
+      overflow-x: hidden;
+    }
+
+    .svg-defs {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(180, 145, 95, 0.25);
+      text-align: center;
+    }
+
+    .toolbar-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 700;
+      color: #6b2c3f;
+      margin-bottom: 9px;
+      font-size: 16px;
+      letter-spacing: 0.3px;
+    }
+
+    .buttons,
+    .url-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .url-row {
+      margin-bottom: 8px;
+    }
+
+    input[type="text"] {
+      min-width: min(520px, 88vw);
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(168, 129, 70, 0.35);
+      font: inherit;
+      color: #4a2b25;
+      background: #fff;
+    }
+
+    button {
+      border: 1px solid rgba(168, 129, 70, 0.35);
+      background: rgba(255, 255, 255, 0.92);
+      color: #5a3327;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    button:hover {
+      border-color: var(--gold);
+      color: var(--wine);
+      transform: translateY(-1px);
+    }
+
+    button.active {
+      background: linear-gradient(135deg, #fff3d6, #ffd9e6);
+      border-color: var(--gold);
+      color: var(--wine);
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(200, 90, 130, 0.18);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #ffe9a8 0%, #e0b25c 32%, #a06a1f 62%, #ffdf8f 100%);
+      color: #fff;
+      border-color: transparent;
+      font-weight: 700;
+      text-shadow: 0 1px 1px rgba(75, 42, 10, 0.35);
+      box-shadow: 0 6px 18px rgba(160, 106, 31, 0.28);
+    }
+
+    .help {
+      max-width: 1000px;
+      margin: 16px auto 0;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(200, 140, 90, 0.25);
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #5a3327;
+      box-shadow: 0 8px 24px rgba(70, 40, 30, 0.07);
+    }
+
+    .help b {
+      color: var(--wine);
+    }
+
+    #baseWarning {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 244, 225, 0.85);
+      border: 1px solid rgba(200, 162, 75, 0.25);
+      color: #6b3a2a;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .cards {
+      padding: 24px 14px 90px;
+    }
+
+    .card {
+      position: relative;
+      width: 105mm;
+      height: 148mm;
+      margin: 22px auto;
+      overflow: hidden;
+      background: var(--paper);
+      box-shadow:
+        0 20px 55px rgba(90, 30, 50, 0.22),
+        0 3px 10px rgba(0, 0, 0, 0.10),
+        inset 0 0 0 0.15mm rgba(255, 255, 255, 0.5);
+      isolation: isolate;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      page-break-after: always;
+      break-after: page;
+      border-radius: 1.2mm;
+    }
+
+    .card.last-visible {
+      page-break-after: auto;
+      break-after: auto;
+    }
+
+    body[data-view="a"] .card-b,
+    body[data-view="b"] .card-a {
+      display: none;
+    }
+
+    .card-a {
+      background: linear-gradient(140deg,
+        #fff8ec 0%,
+        #ffe9d8 26%,
+        #ffdbe8 52%,
+        #ffcee0 76%,
+        #ffc3d8 100%);
+    }
+
+    .card-b {
+      background: linear-gradient(140deg,
+        #fff3f0 0%,
+        #ffdce8 30%,
+        #f9c0d8 58%,
+        #efa5c7 82%,
+        #e594bd 100%);
+    }
+
+    .wash,
+    .texture,
+    .frames,
+    .decor,
+    .center-glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .wash {
+      z-index: 0;
+    }
+
+    .texture {
+      z-index: 1;
+      opacity: 0.09;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+      background-size: 42mm 42mm;
+    }
+
+    .decor {
+      z-index: 2;
+    }
+
+    .center-glow {
+      z-index: 2;
+      left: 9mm;
+      right: 9mm;
+      top: 28mm;
+      height: 70mm;
+      background: radial-gradient(ellipse at center,
+        rgba(255, 253, 248, 0.96) 0%,
+        rgba(255, 253, 248, 0.72) 36%,
+        rgba(255, 253, 248, 0.30) 58%,
+        rgba(255, 253, 248, 0) 78%);
+      filter: blur(1mm);
+    }
+
+    .card-b .center-glow {
+      top: 27mm;
+      height: 72mm;
+      background: radial-gradient(ellipse at center,
+        rgba(255, 249, 243, 0.94) 0%,
+        rgba(255, 249, 243, 0.66) 36%,
+        rgba(255, 249, 243, 0.26) 60%,
+        rgba(255, 249, 243, 0) 80%);
+    }
+
+    .frames {
+      z-index: 3;
+    }
+
+    .seal,
+    .title,
+    .ornament,
+    .qr-panel,
+    .action,
+    .instruction-b,
+    .signature {
+      position: absolute;
+      z-index: 5;
+    }
+
+    .seal {
+      top: 8.4mm;
+      right: 8.4mm;
+      width: 12.2mm;
+      height: 12.2mm;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 4.9mm;
+      font-weight: 700;
+      color: #fff6df;
+      background: radial-gradient(circle at 32% 26%,
+        #ffd98f 0%,
+        #e9a83f 30%,
+        #b06a1a 58%,
+        #7e3d12 82%,
+        #5c2410 100%);
+      box-shadow:
+        inset 0 0 0 0.4mm rgba(255, 236, 190, 0.85),
+        inset 0 0.6mm 1.4mm rgba(80, 30, 10, 0.35),
+        0 1.4mm 3.6mm rgba(91, 52, 23, 0.3);
+      border: 0.28mm solid rgba(139, 95, 28, 0.5);
+      text-shadow: 0 0.15mm 0.3mm rgba(60, 20, 5, 0.55);
+    }
+
+    .seal::after {
+      content: "";
+      position: absolute;
+      inset: 1.1mm;
+      border-radius: 50%;
+      border: 0.14mm dashed rgba(255, 240, 200, 0.75);
+    }
+
+    .title {
+      top: 18.6mm;
+      left: 9.5mm;
+      right: 9.5mm;
+      margin: 0;
+      text-align: center;
+      font-family: 'Marck Script', cursive;
+      font-size: 9.0mm;
+      line-height: 1.02;
+      color: var(--wine);
+      font-weight: 400;
+      text-shadow:
+        0 0.14mm 0 rgba(255, 255, 255, 0.92),
+        0 0.45mm 1.1mm rgba(121, 28, 58, 0.2);
+    }
+
+    .card-b .title {
+      top: 19.4mm;
+      font-size: 7.6mm;
+      color: #641231;
+    }
+
+    .ornament {
+      top: 30.4mm;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 52mm;
+      height: 6mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2.2mm;
+      color: var(--gold);
+    }
+
+    .ornament i {
+      display: block;
+      width: 19mm;
+      height: 0.26mm;
+      background: linear-gradient(90deg,
+        transparent,
+        #ffdf8f,
+        #c8a24b,
+        #ffdf8f,
+        transparent);
+    }
+
+    .ornament svg {
+      width: 5.2mm;
+      height: 5.2mm;
+      fill: url(#goldFoil);
+      filter: drop-shadow(0 0.22mm 0.4mm rgba(139, 95, 28, 0.28));
+    }
+
+    .qr-panel {
+      left: 50%;
+      top: 37mm;
+      transform: translateX(-50%);
+      width: 64mm;
+      height: 62mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2.4mm;
+    }
+
+    .qr-box {
+      width: 44mm;
+      height: 44mm;
+      background: #fff;
+      border: 0.35mm solid rgba(139, 95, 28, 0.55);
+      border-radius: 2mm;
+      padding: 2.6mm;
+      box-shadow:
+        0 1.2mm 4mm rgba(90, 30, 50, 0.14),
+        inset 0 0 0 0.2mm rgba(255, 255, 255, 0.9);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .qr-box img,
+    .qr-box canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .qr-box table {
+      width: 100% !important;
+      height: 100% !important;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .qr-box td {
+      padding: 0 !important;
+      width: auto !important;
+      height: auto !important;
+    }
+
+    .qr-fallback {
+      font-size: 2.1mm;
+      line-height: 1.35;
+      text-align: center;
+      color: #6b3a2a;
+      word-break: break-word;
+      padding: 2mm;
+    }
+
+    .qr-caption {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 3.35mm;
+      font-weight: 700;
+      letter-spacing: 0.12mm;
+      color: #6b3a2a;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .action,
+    .instruction-b {
+      left: 10.5mm;
+      right: 10.5mm;
+      text-align: center;
+      color: var(--wine);
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 3.5mm;
+      line-height: 1.35;
+      font-weight: 700;
+      letter-spacing: 0.02mm;
+      text-shadow: 0 0 1mm rgba(255, 253, 248, 0.85);
+    }
+
+    .action {
+      bottom: 20.8mm;
+    }
+
+    .instruction-b {
+      bottom: 20.8mm;
+      color: #6b1133;
+      font-size: 3.4mm;
+    }
+
+    .instruction-b.final {
+      font-size: 3.05mm;
+      bottom: 19.2mm;
+      line-height: 1.28;
+    }
+
+    .signature {
+      left: 23mm;
+      right: 23mm;
+      bottom: 8.0mm;
+      height: 0;
+      border-top: 0.24mm dashed rgba(200, 140, 80, 0.8);
+      z-index: 5;
+    }
+
+    .signature::before,
+    .signature::after {
+      content: "";
+      position: absolute;
+      top: -0.8mm;
+      width: 1.6mm;
+      height: 1.6mm;
+      transform: rotate(45deg);
+      background: linear-gradient(135deg, #ffdf8f, #c8a24b);
+      opacity: 0.7;
+    }
+
+    .signature::before {
+      left: -1.3mm;
+    }
+
+    .signature::after {
+      right: -1.3mm;
+    }
+
+    [contenteditable] {
+      outline: none;
+    }
+
+    [contenteditable]:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 1mm;
+    }
+
+    [contenteditable]:focus {
+      outline: 0.2mm dashed rgba(200, 162, 75, 0.6);
+      outline-offset: 1mm;
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    /* Mobile app */
+    #mobileApp {
+      display: none;
+      position: relative;
+      min-height: 100vh;
+      padding: 16px 14px 40px;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    body.mobile-mode #mobileApp {
+      display: flex;
+    }
+
+    body.mobile-mode .toolbar,
+    body.mobile-mode .help,
+    body.mobile-mode .cards {
+      display: none !important;
+    }
+
+    .m-top {
+      width: min(560px, 100%);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .m-badge,
+    .m-progress {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 224, 138, 0.35);
+      backdrop-filter: blur(10px);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: #fff5e8;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .m-stage {
+      width: min(560px, 100%);
+      background: rgba(255, 253, 248, 0.97);
+      color: #3d1b26;
+      border-radius: 26px;
+      padding: 22px 18px 26px;
+      box-shadow:
+        0 24px 70px rgba(50, 10, 30, 0.28),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(200, 162, 75, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .m-stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(244, 143, 177, 0.22), transparent 28%),
+        radial-gradient(circle at 85% 15%, rgba(255, 213, 79, 0.20), transparent 24%),
+        radial-gradient(circle at 50% 90%, rgba(181, 126, 220, 0.14), transparent 30%);
+      pointer-events: none;
+    }
+
+    .m-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .m-art {
+      height: 126px;
+      display: grid;
+      place-items: center;
+      font-size: 62px;
+      animation: float 3.2s ease-in-out infinite;
+      filter: drop-shadow(0 10px 18px rgba(120, 30, 60, 0.18));
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-10px) rotate(2deg); }
+    }
+
+    .m-title {
+      font-family: 'Marck Script', cursive;
+      color: #791c3a;
+      text-align: center;
+      font-size: 36px;
+      line-height: 1.05;
+      margin: 4px 0 12px;
+      text-shadow: 0 2px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .m-chip-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .m-chip {
+      display: inline-block;
+      background: linear-gradient(135deg, #fff0bd, #f5c8d8);
+      color: #5b2410;
+      border: 1px solid rgba(200, 162, 75, 0.35);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 6px 16px rgba(120, 50, 70, 0.10);
+    }
+
+    .m-text {
+      font-family: 'Cormorant Garamond', 'PT Serif', Georgia, serif;
+      font-size: 20px;
+      line-height: 1.45;
+      text-align: center;
+      white-space: pre-line;
+      min-height: 130px;
+      color: #3d1b26;
+      font-weight: 600;
+    }
+
+    .m-text span {
+      display: block;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: fadeUp 0.55s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .m-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .m-play {
+      background: linear-gradient(135deg, #ffe9a8 0%, #e0b25c 32%, #a06a1f 62%, #ffdf8f 100%);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 13px 18px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(160, 106, 31, 0.28);
+      text-shadow: 0 1px 1px rgba(75, 42, 10, 0.35);
+    }
+
+    .m-play:disabled {
+      opacity: 0.65;
+      cursor: wait;
+      transform: none;
+    }
+
+    .m-secondary {
+      background: rgba(121, 28, 58, 0.08);
+      border: 1px solid rgba(121, 28, 58, 0.2);
+      color: #791c3a;
+      border-radius: 999px;
+      padding: 11px 14px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .m-status {
+      text-align: center;
+      font-size: 13px;
+      color: #8a6754;
+      min-height: 18px;
+      margin-top: 10px;
+    }
+
+    .m-back {
+      margin-top: 14px;
+      display: block;
+      width: min(560px, 100%);
+      text-align: center;
+      color: rgba(255, 245, 232, 0.85);
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    /* Modal: исправлено */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(40, 10, 25, 0.55);
+      display: none;
+      place-items: center;
+      padding: 16px;
+      z-index: 100;
+      backdrop-filter: blur(6px);
+    }
+
+    .modal.open {
+      display: grid;
+    }
+
+    .modal-card {
+      width: min(480px, 100%);
+      background: #fffdf8;
+      border-radius: 24px;
+      padding: 18px;
+      border: 1px solid rgba(200, 162, 75, 0.35);
+      box-shadow: 0 24px 70px rgba(50, 10, 30, 0.3);
+      max-height: 82vh;
+      overflow: auto;
+      color: #3d1b26;
+    }
+
+    .modal-title {
+      font-family: 'Marck Script', cursive;
+      font-size: 30px;
+      color: #791c3a;
+      text-align: center;
+      margin: 0 0 10px;
+    }
+
+    .collection-note {
+      text-align: center;
+      color: #7a5a4a;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .collection-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .collect {
+      border-radius: 16px;
+      padding: 12px 8px;
+      text-align: center;
+      background: linear-gradient(135deg, #fff7ec, #ffdde9);
+      border: 1px solid rgba(200, 162, 75, 0.28);
+      font-size: 13px;
+      font-weight: 700;
+      color: #5b2410;
+      box-shadow: 0 6px 16px rgba(120, 50, 70, 0.08);
+    }
+
+    .collect.locked {
+      opacity: 0.45;
+      filter: grayscale(1);
+    }
+
+    .collect .emoji {
+      font-size: 30px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 14px;
+      top: -20px;
+      z-index: 200;
+      pointer-events: none;
+      border-radius: 2px;
+      animation: fall linear forwards;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(110vh) rotate(720deg);
+        opacity: 0.9;
+      }
+    }
+
+    @page {
+      size: 105mm 148mm;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .toolbar,
+      .help,
+      #mobileApp,
+      .modal {
+        display: none !important;
+      }
+
+      .cards {
+        padding: 0;
+      }
+
+      .card {
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+        width: 105mm;
+        height: 148mm;
+      }
+
+      .texture {
+        opacity: 0.07;
+      }
+
+      [contenteditable]:hover,
+      [contenteditable]:focus {
+        background: transparent !important;
+        outline: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body data-view="all">
+
+  <svg class="svg-defs" aria-hidden="true">
+    <defs>
+      <linearGradient id="goldFoil" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fff1b8" />
+        <stop offset="0.16" stop-color="#d9b45a" />
+        <stop offset="0.34" stop-color="#8b5f1c" />
+        <stop offset="0.52" stop-color="#f6e29b" />
+        <stop offset="0.72" stop-color="#b8860b" />
+        <stop offset="1" stop-color="#7a4d18" />
+      </linearGradient>
+
+      <linearGradient id="goldSoft" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffe08a" />
+        <stop offset="0.48" stop-color="#c8a24b" />
+        <stop offset="1" stop-color="#91651f" />
+      </linearGradient>
+
+      <linearGradient id="roseGold" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffb3c9" />
+        <stop offset="0.5" stop-color="#e8548c" />
+        <stop offset="1" stop-color="#a52856" />
+      </linearGradient>
+
+      <radialGradient id="washRose" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#f48fb1" stop-opacity="0.95" />
+        <stop offset="52%" stop-color="#f48fb1" stop-opacity="0.5" />
+        <stop offset="100%" stop-color="#f48fb1" stop-opacity="0" />
+      </radialGradient>
+
+      <radialGradient id="washCoral" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffab91" stop-opacity="0.88" />
+        <stop offset="55%" stop-color="#ffab91" stop-opacity="0.42" />
+        <stop offset="100%" stop-color="#ffab91" stop-opacity="0" />
+      </radialGradient>
+
+      <radialGradient id="washGold" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffd54f" stop-opacity="0.8" />
+        <stop offset="58%" stop-color="#ffd54f" stop-opacity="0.34" />
+        <stop offset="100%" stop-color="#ffd54f" stop-opacity="0" />
+      </radialGradient>
+
+      <radialGradient id="washLilac" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ce93d8" stop-opacity="0.78" />
+        <stop offset="60%" stop-color="#ce93d8" stop-opacity="0.32" />
+        <stop offset="100%" stop-color="#ce93d8" stop-opacity="0" />
+      </radialGradient>
+
+      <radialGradient id="washMagenta" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ec407a" stop-opacity="0.88" />
+        <stop offset="55%" stop-color="#ec407a" stop-opacity="0.4" />
+        <stop offset="100%" stop-color="#ec407a" stop-opacity="0" />
+      </radialGradient>
+
+      <radialGradient id="washPlum" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ab47bc" stop-opacity="0.72" />
+        <stop offset="60%" stop-color="#ab47bc" stop-opacity="0.3" />
+        <stop offset="100%" stop-color="#ab47bc" stop-opacity="0" />
+      </radialGradient>
+
+      <radialGradient id="washBerry" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#d81b60" stop-opacity="0.66" />
+        <stop offset="62%" stop-color="#d81b60" stop-opacity="0.26" />
+        <stop offset="100%" stop-color="#d81b60" stop-opacity="0" />
+      </radialGradient>
+
+      <radialGradient id="washVeil" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#fffaf2" stop-opacity="0.62" />
+        <stop offset="100%" stop-color="#fffaf2" stop-opacity="0" />
+      </radialGradient>
+
+      <filter id="wc1" x="-38%" y="-38%" width="176%" height="176%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="4" seed="11" result="n" />
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="9.5" xChannelSelector="R" yChannelSelector="G" result="d" />
+        <feGaussianBlur in="d" stdDeviation="2.2" result="b" />
+        <feComponentTransfer in="b">
+          <feFuncA type="linear" slope="1.1" intercept="0" />
+        </feComponentTransfer>
+      </filter>
+
+      <filter id="wc2" x="-38%" y="-38%" width="176%" height="176%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.016 0.022" numOctaves="4" seed="29" result="n" />
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="10.5" xChannelSelector="R" yChannelSelector="G" result="d" />
+        <feGaussianBlur in="d" stdDeviation="2.4" result="b" />
+        <feComponentTransfer in="b">
+          <feFuncA type="linear" slope="1.12" intercept="0" />
+        </feComponentTransfer>
+      </filter>
+
+      <filter id="wc3" x="-38%" y="-38%" width="176%" height="176%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.010 0.016" numOctaves="4" seed="47" result="n" />
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="8.5" xChannelSelector="R" yChannelSelector="G" result="d" />
+        <feGaussianBlur in="d" stdDeviation="1.9" result="b" />
+        <feComponentTransfer in="b">
+          <feFuncA type="linear" slope="1.08" intercept="0" />
+        </feComponentTransfer>
+      </filter>
+
+      <symbol id="heart" viewBox="0 0 10 10">
+        <path d="M5 8.8C1.8 6.3.6 4.4 1.7 2.9 2.8 1.4 4.6 1.9 5 3.2 5.4 1.9 7.2 1.4 8.3 2.9 9.4 4.4 8.2 6.3 5 8.8Z" />
+      </symbol>
+
+      <symbol id="spark" viewBox="0 0 10 10">
+        <path d="M5 .6L5.9 4.1 9.4 5 5.9 5.9 5 9.4 4.1 5.9.6 5 4.1 4.1Z" />
+      </symbol>
+
+      <symbol id="cornerBloom" viewBox="0 0 26 26">
+        <path d="M2 24C6 17 9 10 24 2" fill="none" stroke="url(#goldFoil)" stroke-width=".6" stroke-linecap="round" />
+        <path d="M4 24c4-4.5 7-8 18-13" fill="none" stroke="url(#goldSoft)" stroke-width=".34" stroke-linecap="round" opacity=".8" />
+        <g opacity=".92">
+          <circle cx="19" cy="6" r="2.3" fill="#f48fb1" />
+          <circle cx="19" cy="6" r=".9" fill="#ffd54f" />
+          <circle cx="23" cy="4" r="1.5" fill="#ffab91" />
+          <circle cx="14.5" cy="10" r="1.7" fill="#ce93d8" />
+          <circle cx="14.5" cy="10" r=".6" fill="#fff3f6" />
+          <circle cx="8" cy="16" r="1.4" fill="#f48fb1" />
+          <circle cx="8" cy="16" r=".5" fill="#ffd54f" />
+        </g>
+        <g fill="none" stroke="#8fae7a" stroke-width=".5" opacity=".8">
+          <path d="M16.5 8.5c-1.8-.4-3 .2-3.6 1.6M12 12.5c-1.6-.6-2.9-.2-3.6 1.2" />
+        </g>
+      </symbol>
+
+      <symbol id="sakura" viewBox="0 0 40 20">
+        <path d="M2 16C10 12 18 10 38 6" fill="none" stroke="#a67a58" stroke-width=".85" opacity=".65" />
+        <g opacity=".9">
+          <circle cx="10" cy="12" r="2.4" fill="#f48fb1" />
+          <circle cx="18" cy="9" r="1.9" fill="#f8bbd0" />
+          <circle cx="27" cy="7" r="2.2" fill="#ef6f9e" />
+          <circle cx="35" cy="5" r="1.7" fill="#f8bbd0" />
+        </g>
+        <g fill="#ffd54f" opacity=".95">
+          <circle cx="10" cy="12" r=".75" />
+          <circle cx="18" cy="9" r=".6" />
+          <circle cx="27" cy="7" r=".7" />
+        </g>
+      </symbol>
+
+      <symbol id="lavender" viewBox="0 0 20 40">
+        <path d="M10 38V16" stroke="#7d9a6a" stroke-width=".95" fill="none" opacity=".7" />
+        <g fill="#b57edc" opacity=".85">
+          <ellipse cx="10" cy="14" rx="2.3" ry="1.6" />
+          <ellipse cx="10" cy="10" rx="2.1" ry="1.5" />
+          <ellipse cx="10" cy="6.5" rx="1.8" ry="1.3" />
+          <ellipse cx="10" cy="3.5" rx="1.4" ry="1.1" />
+        </g>
+        <g fill="#e1bee7" opacity=".8">
+          <circle cx="8.6" cy="12.6" r=".6" />
+          <circle cx="8.8" cy="9" r=".55" />
+          <circle cx="9" cy="5.8" r=".5" />
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="toolbar" id="toolbar">
+    <div class="toolbar-title">Романтический QR-квест • 18 карточек A6</div>
+
+    <div class="url-row">
+      <input id="baseUrl" type="text" placeholder="Вставь публичный адрес, например https://имя.ru/index.html">
+      <button onclick="applyBaseUrl()">Применить адрес</button>
+    </div>
+
+    <div class="buttons">
+      <button data-view="all" class="active" onclick="setView('all')">Все 18 (парами)</button>
+      <button data-view="a" onclick="setView('a')">Только A</button>
+      <button data-view="b" onclick="setView('b')">Только B</button>
+      <button onclick="testMobile()">Проверить мобильный вид</button>
+      <button class="primary" onclick="printPdf()">Скачать PDF / Печать</button>
+    </div>
+  </div>
+
+  <div class="help" id="help">
+    <b>Важно:</b> QR-код должен вести на интернет-адрес, который открывается на телефоне.
+    Если ты открыл файл локально как <code>file:///...</code>, телефон такой адрес не откроет.
+    Залей файл на хостинг, открой публичную ссылку, затем печатай.<br><br>
+
+    <b>Как работает:</b> карточка A — снаружи подарка, карточка B — внутри подарка.
+    Жена сканирует QR, на телефоне открывается музыкально-голосовая подсказка, и она идёт дальше.<br><br>
+
+    <b>Голос:</b> по умолчанию используется синтез речи телефона. Если хочешь свой голос — запиши MP3 и пропиши ссылки в массиве <code>AUDIO_URLS</code> в коде.
+
+    <div id="baseWarning"></div>
+  </div>
+
+  <main class="cards" id="cards"></main>
+
+  <div id="mobileApp">
+    <div class="m-top">
+      <div class="m-badge" id="mBadge">Подарок</div>
+      <div class="m-progress" id="mProgress">Найдено: 0/9</div>
+    </div>
+
+    <div class="m-stage">
+      <div class="m-inner">
+        <div class="m-art" id="mArt">🎁</div>
+        <h1 class="m-title" id="mTitle">Ты нашла подарок!</h1>
+
+        <div class="m-chip-row" id="mChips"></div>
+        <div class="m-text" id="mText"></div>
+
+        <div class="m-actions">
+          <button class="m-play" id="mPlay" onclick="playHint()">▶ Включить подсказку</button>
+          <button class="m-secondary" id="mMusic" onclick="toggleMusic()">♫ Музыка: выкл</button>
+          <button class="m-secondary" onclick="openCollection()">Моя коллекция</button>
+          <button class="m-secondary" onclick="celebrate()">Конфетти</button>
+        </div>
+
+        <div class="m-status" id="mStatus">Нажми кнопку, чтобы услышать подсказку.</div>
+      </div>
+    </div>
+
+    <a class="m-back" onclick="showPrintView()">← Вернуться к печатным карточкам</a>
+  </div>
+
+  <div class="modal" id="collectionModal">
+    <div class="modal-card">
+      <h2 class="modal-title">Моя коллекция</h2>
+      <div class="collection-note">
+        Каждый найденный подарок открывает новую звёздочку в твоей коллекции.
+      </div>
+      <div class="collection-grid" id="collectionGrid"></div>
+      <div class="m-actions">
+        <button class="m-secondary" onclick="closeCollection()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "romantic-qr-quest-v2-fixed";
+
+    const PRINT_A_INSTRUCTION = "Разверни подарок и найди\ncарточку-подсказку внутри";
+    const PRINT_B_INSTRUCTION = "Следующая карточка ждёт тебя…";
+    const PRINT_FINAL_B_INSTRUCTION = "Финал не в карточке — он в моих глазах";
+
+    // Если хочешь свой голос: положи mp3 в папку audio и распиши здесь:
+    // const AUDIO_URLS = { a1: "audio/a1.mp3", b1: "audio/b1.mp3" };
+    const AUDIO_URLS = {};
+
+    const aCards = [
+      {
+        num: 1,
+        text: `У зеркала, милая, начат маршрут,
+Тебя здесь подарки и тайны ждут.
+Он алый, с лезвиями, картошку строгает,
+Ровные брусочки ловко нарезает.
+Разверни поскорее — внутри ждёт секрет:
+В той карточке — следующий мой совет.`
+      },
+      {
+        num: 2,
+        text: `У раковины, где вода и уют,
+Второй твой сюрприз уже тихо тут.
+Пять лёгких предметов в металле лежат,
+Готовить помогут, но скромно молчат.
+Разверни поскорее — внутри ждёт секрет:
+В той карточке — следующий мой совет.`
+      },
+      {
+        num: 3,
+        text: `В шкафу, где духовка, прохладно и темно,
+Третий сюрприз ждёт, чтобы стало тепло.
+С ручкой дружок тесто ловко катает,
+В тонкие ленты его превращает.
+Разверни поскорее — внутри ждёт секрет:
+В той карточке — следующий мой совет.`
+      },
+      {
+        num: 4,
+        text: `У духовки, где жар и уют,
+Четвёртый сюрприз тебя ждёт тут.
+Друг полосатый, с пламенем в ладу,
+В эмалевом платье жарит на ходу.
+Разверни поскорее — внутри ждёт секрет:
+В той карточке — следующий мой совет.`
+      },
+      {
+        num: 5,
+        text: `У стола твоего — круглый важный герой,
+С крышкой-подругой, вместительный, свой.
+Для плова, для супа, для тёплых друзей
+Он ждёт — открывай и зови всех скорей.
+Разверни поскорее — внутри ждёт секрет:
+В той карточке — следующий мой совет.`
+      },
+      {
+        num: 6,
+        text: `У морозильника — нежна прохлада,
+Приложи ладошку — и будет награда.
+Рядом набор ждёт на шестерых,
+Много предметов для трапез больших.
+Разверни поскорее — внутри ждёт секрет:
+В той карточке — следующий мой совет.`
+      },
+      {
+        num: 7,
+        text: `Холодильник — седьмая станция твоя,
+Здесь новая радость, родная, моя.
+Набор с ярким именем ждёт у дверей,
+Красивый и нужный для многих вещей.
+Разверни поскорее — внутри ждёт секрет:
+В той карточке — следующий мой совет.`
+      },
+      {
+        num: 8,
+        text: `У зеркала в ванной — почти финал,
+Скажи: «Я прекрасна!» — как я и мечтал.
+Рядом шесть длинных подружек лежат,
+Серебристых и белых — для чайных услад.
+Разверни поскорее — внутри ждёт секрет:
+В той карточке — следующий мой совет.`
+      },
+      {
+        num: 9,
+        text: `Ты дошла до финала, душа моя,
+На большой кровати — дар от меня.
+Два золотых круга, колец силуэт,
+Проба 585 — нежный ответ.
+Разверни поскорее — внутри ждёт секрет:
+В той карточке — финальный совет.`
+      }
+    ];
+
+    const bCards = [
+      {
+        num: 1,
+        next: "Кухонная раковина",
+        text: `Первый развёрнут — и алый наряд,
+Он для картошки так долго был рад.
+Но не финал это, милая, знак:
+У раковины спрятан твой маяк.
+К кухонной раковине путь свой держи,
+Там новый свёрток найди и развяжи.`
+      },
+      {
+        num: 2,
+        next: "Шкаф с духовкой",
+        text: `Вот и второй уж развёрнут, смотри:
+Пять металлических спутников внутри.
+Но не последний ещё поворот —
+К шкафу с духовкой тебя он ведёт.
+К шкафу, где духовка, скорее шагай,
+Третий свёрток там встречай.`
+      },
+      {
+        num: 3,
+        next: "Дверца духовки",
+        text: `Третий развёрнут — чудесный момент,
+В карточке нежной — любви комплимент.
+Новый дружок уже твой, посмотри:
+Тесто раскатает — любовь внутри.
+К дверце духовки скорее шагай,
+Четвёртый свёрток там встречай.`
+      },
+      {
+        num: 4,
+        next: "Стол с компьютером",
+        text: `Полосатый друг — твой надёжный герой,
+Он подружит жар с счастливой порой.
+Но не последний это сюрприз,
+Дальше — приятный ещё каприз.
+К столу с компьютером путь держи,
+Пятый свёрток там найди.`
+      },
+      {
+        num: 5,
+        next: "Морозильник",
+        text: `Чудо-круг развёрнут — надёжный твой друг,
+В нём плов и супы густеют вокруг.
+Но квест продолжается, не засыпай,
+Следующий клад поскорее встречай.
+К морозильнику в коридор иди,
+Шестой свёрток там найди.`
+      },
+      {
+        num: 6,
+        next: "Холодильник",
+        text: `Стол на шестерых уже в твоих руках,
+Блеск и порядок сияют в глазах.
+Но это не точка, а лишь запятая,
+Дальше — находка чуть-чуть непростая.
+К холодильнику в коридоре ступай,
+Седьмой свёрток там встречай.`
+      },
+      {
+        num: 7,
+        next: "Ванная, зеркало",
+        text: `Набор с именем развёрнут — хорош,
+На много лет он и вправду пригож.
+Но не финал, не последний виток —
+Ещё один ждёт тебя поворот.
+В ванную к зеркалу путь держи,
+Восьмой свёрток там найди.`
+      },
+      {
+        num: 8,
+        next: "Большая кровать",
+        text: `Шесть длинных подружек уже в твоих руках,
+Для чая и кофе — мерцанье в глазах.
+Но впереди ещё главный каприз —
+Последний, сияющий, звёздный сюрприз.
+В комнату к большой кровати иди,
+Девятый свёрток там найди.`
+      },
+      {
+        num: 9,
+        final: true,
+        next: "Финальный сюрприз",
+        text: `Последний развёрнут — и вспыхнул свет:
+Два золотых круга, цены им нет.
+Проба 585, блеском горят,
+Тебя, именинница, нежно хранят.
+Надень их — сияй, желанье загадай,
+Я люблю тебя — и век не забывай.`
+      }
+    ];
+
+    const giftEmojis = ["🎁", "🎀", "✨", "🌸", "", "🕊️", "🌙", "⭐", "💍"];
+
+    let currentRoute = null;
+    let audioCtx = null;
+    let isSpeaking = false;
+    let musicTimer = null;
+    let musicStep = 0;
+    let currentAudio = null;
+
+    function esc(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function escAttr(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return {
+          seen: parsed.seen || {},
+          found: parsed.found || {}
+        };
+      } catch (e) {
+        return { seen: {}, found: {} };
+      }
+    }
+
+    function saveProgress(progress) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+      } catch (e) {}
+    }
+
+    function getBase() {
+      const input = document.getElementById("baseUrl");
+      let base = input ? input.value.trim() : "";
+      if (!base) base = location.href.split("#")[0];
+      return base.split("#")[0];
+    }
+
+    function cardUrl(type, num) {
+      return `${getBase()}#${type}${num}`;
+    }
+
+    function routeId(type, num) {
+      return `${type}${num}`;
+    }
+
+    function parseHash(hash) {
+      const clean = String(hash || "").replace(/^#/, "");
+      const match = clean.match(/^([ab])([1-9])$/i);
+      if (!match) return null;
+      return {
+        type: match[1].toLowerCase(),
+        num: Number(match[2])
+      };
+    }
+
+    function washFilter(num) {
+      return `wc${((num - 1) % 3) + 1}`;
+    }
+
+    function washA(num) {
+      const f = washFilter(num);
+      const s = (num % 3) - 1;
+
+      return `
+        <svg class="wash" viewBox="0 0 105 148" preserveAspectRatio="none" aria-hidden="true">
+          <g filter="url(#${f})">
+            <ellipse cx="${16 + s * 2}" cy="${18 + s}" rx="36" ry="28" fill="url(#washRose)" />
+            <ellipse cx="${89 - s * 2}" cy="30" rx="30" ry="25" fill="url(#washGold)" />
+            <ellipse cx="${22 + s}" cy="${127 + s * 2}" rx="36" ry="27" fill="url(#washLilac)" />
+            <ellipse cx="${85 - s}" cy="119" rx="31" ry="24" fill="url(#washCoral)" />
+            <ellipse cx="52" cy="75" rx="46" ry="32" fill="url(#washVeil)" opacity=".5" />
+          </g>
+        </svg>
+      `;
+    }
+
+    function washB(num) {
+      const f = washFilter(num);
+      const s = (num % 3) - 1;
+
+      return `
+        <svg class="wash" viewBox="0 0 105 148" preserveAspectRatio="none" aria-hidden="true">
+          <g filter="url(#${f})">
+            <ellipse cx="${20 + s}" cy="${22 + s}" rx="36" ry="28" fill="url(#washMagenta)" />
+            <ellipse cx="${85 - s}" cy="32" rx="31" ry="25" fill="url(#washGold)" />
+            <ellipse cx="${26 + s}" cy="${125 + s * 2}" rx="37" ry="28" fill="url(#washPlum)" />
+            <ellipse cx="${83 - s}" cy="113" rx="32" ry="25" fill="url(#washBerry)" />
+            <ellipse cx="52" cy="76" rx="47" ry="34" fill="url(#washVeil)" opacity=".42" />
+          </g>
+        </svg>
+      `;
+    }
+
+    function frames() {
+      return `
+        <svg class="frames" viewBox="0 0 105 148" aria-hidden="true">
+          <rect x="3.9" y="3.9" width="97.2" height="140.2" rx="2.6"
+                fill="none" stroke="url(#goldFoil)" stroke-width="0.62" opacity="0.98" />
+          <rect x="5.7" y="5.7" width="93.6" height="136.6" rx="2"
+                fill="none" stroke="#e8548c" stroke-width="0.18" opacity="0.55" />
+          <rect x="6.7" y="6.7" width="91.6" height="134.6" rx="1.8"
+                fill="none" stroke="url(#goldSoft)" stroke-width="0.16" opacity="0.75" />
+
+          <g transform="translate(5.4 5.4)"><use href="#cornerBloom" width="17" height="17" /></g>
+          <g transform="translate(99.6 5.4) scale(-1 1)"><use href="#cornerBloom" width="17" height="17" /></g>
+          <g transform="translate(99.6 142.6) scale(-1 -1)"><use href="#cornerBloom" width="17" height="17" /></g>
+          <g transform="translate(5.4 142.6) scale(1 -1)"><use href="#cornerBloom" width="17" height="17" /></g>
+        </svg>
+      `;
+    }
+
+    function confettiPrint(num, palette) {
+      const colors = palette === "a"
+        ? ["#e0a63a", "#ef6f9e", "#ff8f6b", "#b57edc"]
+        : ["#e0a63a", "#d81b60", "#ab47bc", "#ff8f6b"];
+
+      const rnd = i => ((num * 7 + i * 13) % 97) / 97;
+      let dots = "";
+
+      for (let i = 0; i < 14; i++) {
+        const edge = i % 2;
+        const x = edge ? 2 + rnd(i) * 6 : 97 + rnd(i + 3) * 6;
+        const y = 10 + rnd(i + 5) * 128;
+        const r = 0.35 + rnd(i + 7) * 0.5;
+        const c = colors[i % 4];
+        const o = 0.35 + rnd(i + 9) * 0.3;
+
+        dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="${c}" opacity="${o.toFixed(2)}" />`;
+      }
+
+      return dots;
+    }
+
+    function decorA(num) {
+      const s = (num % 3) - 1;
+
+      return `
+        <svg class="decor" viewBox="0 0 105 148" aria-hidden="true">
+          ${confettiPrint(num, "a")}
+          <use href="#sakura" x="${7.5 + s}" y="22" width="22" height="11" opacity=".8" />
+          <use href="#sakura" x="75" y="8.5" width="20" height="10" opacity=".6" />
+          <use href="#lavender" x="9" y="${103 + s}" width="7.5" height="19" opacity=".6" />
+
+          <use href="#spark" x="${30 + s}" y="21.5" width="2.4" height="2.4" fill="url(#goldFoil)" opacity=".7" />
+          <use href="#spark" x="${72 - s}" y="21.5" width="2.1" height="2.1" fill="#ef6f9e" opacity=".6" />
+
+          <use href="#heart" x="85" y="130" width="4.6" height="4.6" fill="url(#roseGold)" opacity=".7" />
+        </svg>
+      `;
+    }
+
+    function decorB(num) {
+      const s = (num % 3) - 1;
+
+      return `
+        <svg class="decor" viewBox="0 0 105 148" aria-hidden="true">
+          ${confettiPrint(num, "b")}
+          <path d="M15 ${38 + s} C34 ${53 + s} 27 77 52 91 C70 101 66 119 87 ${130 - s}"
+                fill="none" stroke="url(#goldSoft)" stroke-width=".4"
+                stroke-dasharray="1.7 1.9" opacity=".4" />
+
+          <use href="#spark" x="13" y="10" width="3.4" height="3.4" fill="url(#goldFoil)" opacity=".8" />
+          <use href="#spark" x="20" y="17" width="2.1" height="2.1" fill="#ffd54f" opacity=".7" />
+          <use href="#spark" x="79" y="10.5" width="2.6" height="2.6" fill="#ef6f9e" opacity=".7" />
+          <use href="#spark" x="88" y="23" width="1.8" height="1.8" fill="url(#goldFoil)" opacity=".6" />
+
+          <use href="#heart" x="85" y="130" width="4.6" height="4.6" fill="url(#roseGold)" opacity=".7" />
+          <use href="#heart" x="14.5" y="130.5" width="3.6" height="3.6" fill="url(#goldFoil)" opacity=".5" />
+        </svg>
+      `;
+    }
+
+    function cardATemplate(c) {
+      const url = cardUrl("a", c.num);
+
+      return `
+        <article class="card card-a type-a" data-num="${c.num}">
+          ${washA(c.num)}
+          <div class="texture"></div>
+          ${frames()}
+          ${decorA(c.num)}
+          <div class="center-glow"></div>
+
+          <div class="seal">${c.num}</div>
+
+          <h1 class="title" contenteditable="true" spellcheck="false">Подарок №${c.num}</h1>
+
+          <div class="ornament">
+            <i></i>
+            <svg viewBox="0 0 10 10" aria-hidden="true"><use href="#heart"></use></svg>
+            <i></i>
+          </div>
+
+          <div class="qr-panel">
+            <div class="qr-box" data-qr="qr-a${c.num}" data-url="${escAttr(url)}"></div>
+            <div class="qr-caption">Наведи камеру • A${c.num}</div>
+          </div>
+
+          <div class="action" contenteditable="true" spellcheck="false">
+            ${esc(PRINT_A_INSTRUCTION).replace(/\n/g, "<br>")}
+          </div>
+
+          <div class="signature" aria-hidden="true"></div>
+        </article>
+      `;
+    }
+
+    function cardBTemplate(c) {
+      const url = cardUrl("b", c.num);
+      const instruction = c.final ? PRINT_FINAL_B_INSTRUCTION : PRINT_B_INSTRUCTION;
+
+      return `
+        <article class="card card-b type-b" data-num="${c.num}">
+          ${washB(c.num)}
+          <div class="texture"></div>
+          ${frames()}
+          ${decorB(c.num)}
+          <div class="center-glow"></div>
+
+          <div class="seal">${c.num}</div>
+
+          <h1 class="title" contenteditable="true" spellcheck="false">Ты нашла подарок!</h1>
+
+          <div class="ornament">
+            <i></i>
+            <svg viewBox="0 0 10 10" aria-hidden="true"><use href="#heart"></use></svg>
+            <i></i>
+          </div>
+
+          <div class="qr-panel">
+            <div class="qr-box" data-qr="qr-b${c.num}" data-url="${escAttr(url)}"></div>
+            <div class="qr-caption">Наведи камеру • B${c.num}</div>
+          </div>
+
+          <div class="instruction-b ${c.final ? "final" : ""}" contenteditable="true" spellcheck="false">
+            ${esc(instruction)}
+          </div>
+
+          <div class="signature" aria-hidden="true"></div>
+        </article>
+      `;
+    }
+
+    function renderPrint() {
+      const container = document.getElementById("cards");
+      let html = "";
+
+      for (let i = 0; i < 9; i++) {
+        html += cardATemplate(aCards[i]);
+        html += cardBTemplate(bCards[i]);
+      }
+
+      container.innerHTML = html;
+      generateQrs();
+      markLastVisible();
+      updateBaseWarning();
+    }
+
+    function generateQrs() {
+      const boxes = document.querySelectorAll(".qr-box");
+
+      boxes.forEach(box => {
+        box.innerHTML = "";
+        const url = box.dataset.url || "";
+
+        if (!window.QRCode) {
+          box.innerHTML = `
+            <div class="qr-fallback">
+              Не удалось загрузить генератор QR.<br>
+              Открой вручную:<br>
+              ${esc(url)}
+            </div>
+          `;
+          return;
+        }
+
+        try {
+          new QRCode(box, {
+            text: url,
+            width: 512,
+            height: 512,
+            colorDark: "#3d1b26",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (e) {
+          box.innerHTML = `
+            <div class="qr-fallback">
+              Ошибка генерации QR.<br>
+              Открой вручную:<br>
+              ${esc(url)}
+            </div>
+          `;
+        }
+      });
+    }
+
+    function setView(view) {
+      document.body.dataset.view = view;
+
+      document.querySelectorAll(".buttons button[data-view]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.view === view);
+      });
+
+      markLastVisible();
+    }
+
+    function markLastVisible() {
+      const cards = Array.from(document.querySelectorAll(".card"))
+        .filter(el => getComputedStyle(el).display !== "none");
+
+      cards.forEach(card => card.classList.remove("last-visible"));
+
+      if (cards.length) {
+        cards[cards.length - 1].classList.add("last-visible");
+      }
+    }
+
+    function updateBaseWarning() {
+      const el = document.getElementById("baseWarning");
+      if (!el) return;
+
+      const base = getBase();
+
+      if (!base) {
+        el.innerHTML = "<b>Вставь публичный адрес</b>, чтобы QR-коды вели на правильную страницу.";
+        return;
+      }
+
+      if (base.startsWith("file://")) {
+        el.innerHTML = `
+          <b>Внимание:</b> сейчас открыт локальный файл.<br>
+          QR-коды будут вести на <code>file://...</code>, и телефон такую ссылку не откроет.<br>
+          Залей файл на хостинг, вставь публичный адрес выше и нажми «Применить адрес».
+        `;
+        return;
+      }
+
+      el.innerHTML = `
+        <b>Адрес для QR:</b> ${esc(base)}<br>
+        Пример ссылки на первую карточку: ${esc(base)}#a1
+      `;
+    }
+
+    function applyBaseUrl() {
+      renderPrint();
+      const el = document.getElementById("baseWarning");
+      if (el) {
+        el.innerHTML = "<b>Готово.</b> QR-коды обновлены. Можно печатать.";
+      }
+    }
+
+    function printPdf() {
+      markLastVisible();
+      setTimeout(() => window.print(), 120);
+    }
+
+    function testMobile() {
+      if (location.hash === "#b1") {
+        route();
+      } else {
+        location.hash = "#b1";
+      }
+    }
+
+    function showPrintView() {
+      stopMusic();
+      history.replaceState(null, "", location.pathname + location.search);
+      route();
+    }
+
+    function initPrintView() {
+      document.body.classList.remove("mobile-mode");
+      closeCollection();
+      stopMusic();
+
+      const input = document.getElementById("baseUrl");
+      if (input && !input.value) {
+        const base = location.href.split("#")[0];
+        input.value = base;
+      }
+
+      renderPrint();
+    }
+
+    function initMobileView(routeObj) {
+      document.body.classList.add("mobile-mode");
+      closeCollection();
+      currentRoute = routeObj;
+      renderMobile(routeObj);
+    }
+
+    function renderMobile(routeObj) {
+      const progress = loadProgress();
+      const id = routeId(routeObj.type, routeObj.num);
+
+      let title = "";
+      let text = "";
+      let art = "🎁";
+      let chips = [];
+
+      if (routeObj.type === "a") {
+        const item = aCards[routeObj.num - 1];
+        title = `Подарок №${item.num}`;
+        text = item.text;
+        art = "🎁";
+        chips = ["Внешняя карточка", "Разверни подарок"];
+        progress.seen[id] = true;
+      } else {
+        const item = bCards[routeObj.num - 1];
+        title = item.final ? "Финал найден!" : "Ты нашла подарок!";
+        text = item.text;
+        art = item.final ? "💍" : "🧭";
+        chips = [item.next];
+        if (item.final) chips.push("Я люблю тебя");
+        progress.found[item.num] = true;
+        progress.seen[id] = true;
+      }
+
+      saveProgress(progress);
+
+      document.getElementById("mBadge").textContent = title;
+      document.getElementById("mTitle").textContent = title;
+      document.getElementById("mArt").textContent = art;
+      document.getElementById("mStatus").textContent = "Нажми кнопку, чтобы услышать подсказку.";
+
+      const playBtn = document.getElementById("mPlay");
+      playBtn.disabled = false;
+      playBtn.textContent = "▶ Включить подсказку";
+
+      updateMusicButton();
+
+      const chipsEl = document.getElementById("mChips");
+      chipsEl.innerHTML = chips.map(c => `<span class="m-chip">${esc(c)}</span>`).join("");
+
+      const textEl = document.getElementById("mText");
+      const lines = text.split("\n");
+      textEl.innerHTML = lines.map((line, i) =>
+        `<span style="animation-delay:${i * 0.12}s">${esc(line)}</span>`
+      ).join("");
+
+      updateProgressUI();
+
+      if (routeObj.type === "b" && bCards[routeObj.num - 1].final) {
+        setTimeout(celebrate, 800);
+      }
+    }
+
+    function updateProgressUI() {
+      const progress = loadProgress();
+      const foundCount = Object.keys(progress.found || {}).length;
+      document.getElementById("mProgress").textContent = `Найдено: ${foundCount}/9`;
+    }
+
+    function openCollection() {
+      const progress = loadProgress();
+      const grid = document.getElementById("collectionGrid");
+      let html = "";
+
+      for (let i = 1; i <= 9; i++) {
+        const found = Boolean(progress.found[i]);
+        html += `
+          <div class="collect ${found ? "" : "locked"}">
+            <span class="emoji">${found ? giftEmojis[i - 1] : "🔒"}</span>
+            Подарок ${i}
+          </div>
+        `;
+      }
+
+      grid.innerHTML = html;
+      document.getElementById("collectionModal").classList.add("open");
+    }
+
+    function closeCollection() {
+      const modal = document.getElementById("collectionModal");
+      if (modal) modal.classList.remove("open");
+    }
+
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) audioCtx = new Ctx();
+      }
+
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      return audioCtx;
+    }
+
+    function playNote(freq, duration = 0.45, type = "sine", volume = 0.05) {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = type;
+      osc.frequency.value = freq;
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration + 0.05);
+    }
+
+    function playChime() {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+
+      const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25];
+      const now = ctx.currentTime;
+
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "triangle";
+        osc.frequency.value = freq;
+
+        gain.gain.setValueAtTime(0, now + i * 0.22);
+        gain.gain.linearRampToValueAtTime(0.10, now + i * 0.22 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.22 + 0.55);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now + i * 0.22);
+        osc.stop(now + i * 0.22 + 0.6);
+      });
+    }
+
+    function startMusic() {
+      if (musicTimer) return;
+
+      ensureAudioContext();
+      musicStep = 0;
+
+      const scale = [523.25, 587.33, 659.25, 783.99, 880.00, 783.99, 659.25, 587.33];
+
+      musicTimer = setInterval(() => {
+        const freq = scale[musicStep % scale.length];
+        playNote(freq, 0.55, "triangle", 0.04);
+
+        if (musicStep % 4 === 0) {
+          playNote(freq / 2, 0.85, "sine", 0.025);
+        }
+
+        musicStep++;
+      }, 420);
+
+      updateMusicButton();
+    }
+
+    function stopMusic() {
+      if (musicTimer) {
+        clearInterval(musicTimer);
+        musicTimer = null;
+      }
+      updateMusicButton();
+    }
+
+    function toggleMusic() {
+      if (musicTimer) stopMusic();
+      else startMusic();
+    }
+
+    function updateMusicButton() {
+      const btn = document.getElementById("mMusic");
+      if (!btn) return;
+      btn.textContent = musicTimer ? "♫ Музыка: вкл" : "♫ Музыка: выкл";
+    }
+
+    function getRussianVoice() {
+      if (!("speechSynthesis" in window)) return null;
+
+      const voices = speechSynthesis.getVoices() || [];
+      return voices.find(v => /ru|rus/i.test(v.lang)) ||
+             voices.find(v => v.default) ||
+             voices[0] ||
+             null;
+    }
+
+    function stopCurrentAudio() {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+      }
+
+      if ("speechSynthesis" in window) {
+        speechSynthesis.cancel();
+      }
+
+      isSpeaking = false;
+    }
+
+    function speakText(text) {
+      if (!("speechSynthesis" in window)) {
+        finishSpeech("Голос недоступен. Прочитай текст на экране.");
+        return;
+      }
+
+      speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "ru-RU";
+      utterance.rate = 0.93;
+      utterance.pitch = 1.05;
+      utterance.volume = 1;
+
+      const voice = getRussianVoice();
+      if (voice) utterance.voice = voice;
+
+      isSpeaking = true;
+
+      const btn = document.getElementById("mPlay");
+      const status = document.getElementById("mStatus");
+
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Говорю…";
+      }
+
+      if (status) status.textContent = "Слушай подсказку…";
+
+      utterance.onend = () => {
+        finishSpeech("Подсказка завершена. Иди искать дальше!");
+
+        if (currentRoute && currentRoute.type === "b" && bCards[currentRoute.num - 1].final) {
+          celebrate();
+        }
+      };
+
+      utterance.onerror = () => {
+        finishSpeech("Не удалось включить голос. Текст остался на экране.");
+      };
+
+      speechSynthesis.speak(utterance);
+    }
+
+    function finishSpeech(message) {
+      isSpeaking = false;
+
+      const btn = document.getElementById("mPlay");
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "▶ Включить подсказку";
+      }
+
+      const status = document.getElementById("mStatus");
+      if (status) status.textContent = message;
+    }
+
+    function playHint() {
+      if (!currentRoute) return;
+
+      stopCurrentAudio();
+
+      const id = routeId(currentRoute.type, currentRoute.num);
+      const audioUrl = AUDIO_URLS[id];
+
+      if (audioUrl) {
+        const btn = document.getElementById("mPlay");
+        const status = document.getElementById("mStatus");
+
+        btn.disabled = true;
+        btn.textContent = "Проигрываю…";
+        status.textContent = "Проигрываю запись…";
+
+        currentAudio = new Audio(audioUrl);
+
+        currentAudio.onended = () => {
+          currentAudio = null;
+          btn.disabled = false;
+          btn.textContent = "▶ Включить подсказку";
+          status.textContent = "Запись завершена.";
+
+          if (currentRoute.type === "b" && bCards[currentRoute.num - 1].final) {
+            celebrate();
+          }
+        };
+
+        currentAudio.onerror = () => {
+          currentAudio = null;
+          status.textContent = "Не удалось загрузить аудио. Использую голос телефона.";
+          playWithTts();
+        };
+
+        currentAudio.play().catch(() => {
+          currentAudio = null;
+          btn.disabled = false;
+          btn.textContent = "▶ Включить подсказку";
+          status.textContent = "Браузер заблокировал автозапуск. Нажми ещё раз.";
+        });
+
+        return;
+      }
+
+      playWithTts();
+    }
+
+    function playWithTts() {
+      if (!currentRoute) return;
+
+      const isA = currentRoute.type === "a";
+      const item = isA ? aCards[currentRoute.num - 1] : bCards[currentRoute.num - 1];
+
+      const title = isA ? `Подарок номер ${item.num}.` : "Ты нашла подарок!";
+      const body = item.text.replace(/\n/g, ". ");
+      const finalLine = item.final ? " Я люблю тебя!" : "";
+
+      playChime();
+
+      setTimeout(() => {
+        speakText(`${title} ${body}${finalLine}`);
+      }, 750);
+    }
+
+    function celebrate() {
+      const colors = ["#ffd54f", "#f48fb1", "#ff8f6b", "#ce93d8", "#fff3c4", "#e8548c"];
+
+      for (let i = 0; i < 70; i++) {
+        const el = document.createElement("div");
+        el.className = "confetti";
+        el.style.left = Math.random() * 100 + "vw";
+        el.style.background = colors[Math.floor(Math.random() * colors.length)];
+        el.style.animationDuration = (1.8 + Math.random() * 1.8) + "s";
+        el.style.animationDelay = (Math.random() * 0.4) + "s";
+        el.style.transform = `rotate(${Math.random() * 360}deg)`;
+        document.body.appendChild(el);
+
+        setTimeout(() => el.remove(), 4200);
+      }
+    }
+
+    function route() {
+      const r = parseHash(location.hash);
+      if (r) initMobileView(r);
+      else initPrintView();
+    }
+
+    window.addEventListener("hashchange", route);
+
+    window.addEventListener("load", () => {
+      if ("speechSynthesis" in window) {
+        speechSynthesis.getVoices();
+        speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+      }
+
+      route();
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const modal = document.getElementById("collectionModal");
+
+      if (modal) {
+        modal.addEventListener("click", (e) => {
+          if (e.target.id === "collectionModal") {
+            closeCollection();
+          }
+        });
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeCollection();
+        }
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          stopMusic();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
