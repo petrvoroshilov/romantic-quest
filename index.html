@@ -1,0 +1,1990 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Романтический QR-квест — карта сокровищ</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Marck+Script&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+
+  <style>
+    :root {
+      --paper: #fffdf8;
+      --ink: #47241d;
+      --ink-b: #3d1b26;
+      --wine: #791c3a;
+      --wine-deep: #58102b;
+      --gold: #c8a24b;
+      --gold-light: #ffe08a;
+      --gold-dark: #8b5f1c;
+      --rose: #e8548c;
+      --coral: #ff8f6b;
+      --lilac: #b57edc;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% 8%, rgba(232, 84, 140, 0.20), transparent 30%),
+        radial-gradient(circle at 85% 15%, rgba(255, 224, 138, 0.22), transparent 26%),
+        radial-gradient(circle at 50% 85%, rgba(181, 126, 220, 0.16), transparent 32%),
+        #efe7e2;
+      color: var(--ink);
+      font-family: 'PT Serif', Georgia, serif;
+      min-height: 100vh;
+    }
+
+    body.mobile-mode {
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255, 187, 210, 0.35), transparent 30%),
+        radial-gradient(circle at 80% 20%, rgba(255, 224, 138, 0.30), transparent 28%),
+        linear-gradient(160deg, #4b1023 0%, #7d1e42 42%, #b65276 100%);
+      color: #fff7f1;
+      overflow-x: hidden;
+    }
+
+    .svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(180, 145, 95, 0.25);
+      text-align: center;
+    }
+
+    .toolbar-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 700;
+      color: #6b2c3f;
+      margin-bottom: 9px;
+      font-size: 16px;
+      letter-spacing: 0.3px;
+    }
+
+    .buttons,
+    .url-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .url-row { margin-bottom: 8px; }
+
+    input[type="text"] {
+      min-width: min(520px, 88vw);
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(168, 129, 70, 0.35);
+      font: inherit;
+      color: #4a2b25;
+      background: #fff;
+    }
+
+    button {
+      border: 1px solid rgba(168, 129, 70, 0.35);
+      background: rgba(255, 255, 255, 0.92);
+      color: #5a3327;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    button:hover {
+      border-color: var(--gold);
+      color: var(--wine);
+      transform: translateY(-1px);
+    }
+
+    button.active {
+      background: linear-gradient(135deg, #fff3d6, #ffd9e6);
+      border-color: var(--gold);
+      color: var(--wine);
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(200, 90, 130, 0.18);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #ffe9a8 0%, #e0b25c 32%, #a06a1f 62%, #ffdf8f 100%);
+      color: #fff;
+      border-color: transparent;
+      font-weight: 700;
+      text-shadow: 0 1px 1px rgba(75, 42, 10, 0.35);
+      box-shadow: 0 6px 18px rgba(160, 106, 31, 0.28);
+    }
+
+    .help {
+      max-width: 1000px;
+      margin: 16px auto 0;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(200, 140, 90, 0.25);
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #5a3327;
+      box-shadow: 0 8px 24px rgba(70, 40, 30, 0.07);
+    }
+
+    .help b { color: var(--wine); }
+
+    #baseWarning {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 244, 225, 0.85);
+      border: 1px solid rgba(200, 162, 75, 0.25);
+      color: #6b3a2a;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .print-wrap { padding: 24px 14px 90px; }
+
+    .sheet-group { display: none; }
+
+    body[data-print="start"] .start-group,
+    body[data-print="front"] .front-group,
+    body[data-print="back"] .back-group {
+      display: block;
+    }
+
+    .print-card {
+      position: relative;
+      width: 105mm;
+      height: 148mm;
+      margin: 22px auto;
+      overflow: hidden;
+      background: var(--paper);
+      box-shadow:
+        0 20px 55px rgba(90, 30, 50, 0.22),
+        0 3px 10px rgba(0, 0, 0, 0.10),
+        inset 0 0 0 0.15mm rgba(255, 255, 255, 0.5);
+      isolation: isolate;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      page-break-after: always;
+      break-after: page;
+      border-radius: 1.2mm;
+    }
+
+    .print-card.last-visible {
+      page-break-after: auto;
+      break-after: auto;
+    }
+
+    .card-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(140deg,
+        #fff8ec 0%,
+        #ffe9d8 26%,
+        #ffdbe8 52%,
+        #ffcee0 76%,
+        #ffc3d8 100%);
+      z-index: 0;
+    }
+
+    .card-bg.back-bg {
+      background: linear-gradient(140deg,
+        #fff3f0 0%,
+        #ffdce8 30%,
+        #f9c0d8 58%,
+        #efa5c7 82%,
+        #e594bd 100%);
+    }
+
+    .card-frame {
+      position: absolute;
+      inset: 4mm;
+      border: 0.45mm solid rgba(200, 162, 75, 0.9);
+      border-radius: 2mm;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .card-frame::after {
+      content: "";
+      position: absolute;
+      inset: 1.2mm;
+      border: 0.16mm solid rgba(232, 84, 140, 0.45);
+      border-radius: 1.4mm;
+    }
+
+    .card-content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      padding: 12mm 10mm 10mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+    }
+
+    .card-title {
+      font-family: 'Marck Script', cursive;
+      font-size: 9mm;
+      line-height: 1.05;
+      color: var(--wine);
+      margin: 0 0 4mm;
+      text-shadow: 0 0.14mm 0 rgba(255,255,255,0.9);
+    }
+
+    .card-subtitle {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 4.2mm;
+      font-weight: 700;
+      color: #6b3a2a;
+      letter-spacing: 0.08mm;
+      margin-bottom: 4mm;
+    }
+
+    .qr-box {
+      width: 54mm;
+      height: 54mm;
+      background: #fff;
+      border: 0.35mm solid rgba(139, 95, 28, 0.55);
+      border-radius: 2mm;
+      padding: 3mm;
+      box-shadow:
+        0 1.2mm 4mm rgba(90, 30, 50, 0.14),
+        inset 0 0 0 0.2mm rgba(255, 255, 255, 0.9);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .qr-box img,
+    .qr-box canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .qr-caption {
+      margin-top: 4mm;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 3.8mm;
+      font-weight: 700;
+      color: #6b3a2a;
+      text-transform: uppercase;
+      letter-spacing: 0.1mm;
+    }
+
+    .restore-code {
+      margin-top: 4mm;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 4.2mm;
+      font-weight: 700;
+      color: #5d142b;
+    }
+
+    .fragment-window {
+      width: 58mm;
+      height: 112mm;
+      background: #fff;
+      border: 0.35mm solid rgba(139, 95, 28, 0.55);
+      border-radius: 2mm;
+      padding: 3mm;
+      display: grid;
+      place-items: center;
+      box-shadow:
+        0 1.2mm 4mm rgba(90, 30, 50, 0.14),
+        inset 0 0 0 0.2mm rgba(255, 255, 255, 0.9);
+      position: relative;
+    }
+
+    .fragment-window img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+      display: block;
+    }
+
+    .orientation-mark {
+      position: absolute;
+      top: 1.2mm;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 4mm;
+      color: rgba(109, 52, 28, 0.75);
+      font-weight: 700;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .corner-mark {
+      position: absolute;
+      font-size: 4.5mm;
+      color: rgba(200, 162, 75, 0.85);
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .corner-mark.tl { top: 1.2mm; left: 1.5mm; }
+    .corner-mark.tr { top: 1.2mm; right: 1.5mm; }
+    .corner-mark.bl { bottom: 1.2mm; left: 1.5mm; }
+    .corner-mark.br { bottom: 1.2mm; right: 1.5mm; }
+    .corner-mark.tm { top: 1.2mm; left: 50%; transform: translateX(-50%); }
+    .corner-mark.bm { bottom: 1.2mm; left: 50%; transform: translateX(-50%); }
+    .corner-mark.lm { left: 1.5mm; top: 50%; transform: translateY(-50%); }
+    .corner-mark.rm { right: 1.5mm; top: 50%; transform: translateY(-50%); }
+
+    .back-note {
+      margin-top: 4mm;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 3.6mm;
+      font-weight: 700;
+      color: #6b3a2a;
+    }
+
+    /* Mobile */
+    #mobileApp {
+      display: none;
+      position: relative;
+      min-height: 100vh;
+      padding: 16px 14px 50px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    body.mobile-mode #mobileApp { display: flex; }
+    body.mobile-mode .toolbar,
+    body.mobile-mode .help,
+    body.mobile-mode .print-wrap { display: none !important; }
+
+    .m-stage {
+      width: min(560px, 100%);
+      background: rgba(255, 253, 248, 0.97);
+      color: #3d1b26;
+      border-radius: 26px;
+      padding: 20px 16px 22px;
+      box-shadow:
+        0 24px 70px rgba(50, 10, 30, 0.28),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(200, 162, 75, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .m-stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(244, 143, 177, 0.22), transparent 28%),
+        radial-gradient(circle at 85% 15%, rgba(255, 213, 79, 0.20), transparent 24%),
+        radial-gradient(circle at 50% 90%, rgba(181, 126, 220, 0.14), transparent 30%);
+      pointer-events: none;
+    }
+
+    .m-inner { position: relative; z-index: 1; }
+
+    .m-art {
+      height: 78px;
+      display: grid;
+      place-items: center;
+      font-size: 54px;
+      animation: float 3.2s ease-in-out infinite;
+      filter: drop-shadow(0 10px 18px rgba(120, 30, 60, 0.18));
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-8px) rotate(2deg); }
+    }
+
+    .m-title {
+      font-family: 'Marck Script', cursive;
+      color: #791c3a;
+      text-align: center;
+      font-size: 34px;
+      line-height: 1.05;
+      margin: 2px 0 10px;
+      text-shadow: 0 2px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .m-chip-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .m-chip {
+      display: inline-block;
+      background: linear-gradient(135deg, #fff0bd, #f5c8d8);
+      color: #5b2410;
+      border: 1px solid rgba(200, 162, 75, 0.35);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 6px 16px rgba(120, 50, 70, 0.10);
+    }
+
+    .video-shell {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto 10px;
+      aspect-ratio: 9 / 16;
+      max-height: 62vh;
+      border-radius: 22px;
+      overflow: hidden;
+      background: #160810;
+      box-shadow:
+        0 14px 34px rgba(50, 10, 30, 0.22),
+        inset 0 0 0 1px rgba(255, 224, 138, 0.22);
+    }
+
+    .video-shell video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #160810;
+      display: none;
+    }
+
+    .video-placeholder {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      text-align: center;
+      color: #fff3e8;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(232, 84, 140, 0.35), transparent 35%),
+        radial-gradient(circle at 70% 30%, rgba(255, 224, 138, 0.25), transparent 30%),
+        linear-gradient(160deg, #3b1022, #651b31);
+      font-size: 15px;
+      line-height: 1.45;
+      cursor: pointer;
+    }
+
+    .m-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .m-play {
+      background: linear-gradient(135deg, #ffe9a8 0%, #e0b25c 32%, #a06a1f 62%, #ffdf8f 100%);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 13px 18px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(160, 106, 31, 0.28);
+      text-shadow: 0 1px 1px rgba(75, 42, 10, 0.35);
+    }
+
+    .m-secondary {
+      background: rgba(121, 28, 58, 0.08);
+      border: 1px solid rgba(121, 28, 58, 0.2);
+      color: #791c3a;
+      border-radius: 999px;
+      padding: 11px 14px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .m-status {
+      text-align: center;
+      font-size: 13px;
+      color: #8a6754;
+      min-height: 18px;
+      margin-top: 8px;
+    }
+
+    .fallback {
+      margin-top: 12px;
+      border-top: 1px dashed rgba(200, 162, 75, 0.35);
+      padding-top: 10px;
+    }
+
+    .fallback summary {
+      cursor: pointer;
+      color: #791c3a;
+      font-weight: 700;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .m-text {
+      font-family: 'Cormorant Garamond', 'PT Serif', Georgia, serif;
+      font-size: 18px;
+      line-height: 1.45;
+      text-align: center;
+      white-space: pre-line;
+      margin-top: 10px;
+      color: #3d1b26;
+      font-weight: 600;
+    }
+
+    .m-back {
+      margin-top: 14px;
+      display: block;
+      width: min(560px, 100%);
+      text-align: center;
+      color: rgba(255, 245, 232, 0.85);
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    /* Puzzle */
+    .puzzle-board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      width: min(420px, 100%);
+      margin: 10px auto;
+      aspect-ratio: 2 / 1;
+    }
+
+    .slot {
+      position: relative;
+      border: 2px dashed rgba(121, 28, 58, 0.22);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.35);
+      overflow: hidden;
+      min-height: 70px;
+      cursor: pointer;
+    }
+
+    .slot.filled {
+      border-style: solid;
+      border-color: rgba(200, 162, 75, 0.65);
+      background: #fff;
+      cursor: default;
+    }
+
+    .slot.wrong {
+      animation: shake 0.28s ease;
+      border-color: rgba(216, 27, 96, 0.75);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
+    .slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .piece-tray {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: min(420px, 100%);
+      margin: 12px auto 0;
+    }
+
+    .piece {
+      position: relative;
+      aspect-ratio: 1 / 2;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid rgba(200, 162, 75, 0.45);
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(120, 50, 70, 0.12);
+      transition: 0.16s ease;
+    }
+
+    .piece.selected {
+      outline: 3px solid var(--rose);
+      transform: translateY(-3px) scale(1.03);
+    }
+
+    .piece img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .piece .mini-up {
+      position: absolute;
+      top: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: rgba(109, 52, 28, 0.8);
+      font-weight: 700;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .solved-qr {
+      width: min(320px, 82vw);
+      margin: 12px auto;
+      display: block;
+      border-radius: 16px;
+      border: 1px solid rgba(200, 162, 75, 0.45);
+      background: #fff;
+      padding: 8px;
+      box-shadow: 0 12px 30px rgba(90, 30, 50, 0.16);
+    }
+
+    /* Modals */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(40, 10, 25, 0.55);
+      display: none;
+      place-items: center;
+      padding: 16px;
+      z-index: 100;
+      backdrop-filter: blur(6px);
+    }
+
+    .modal.open { display: grid; }
+
+    .modal-card {
+      width: min(480px, 100%);
+      background: #fffdf8;
+      border-radius: 24px;
+      padding: 18px;
+      border: 1px solid rgba(200, 162, 75, 0.35);
+      box-shadow: 0 24px 70px rgba(50, 10, 30, 0.3);
+      max-height: 86vh;
+      overflow: auto;
+      color: #3d1b26;
+    }
+
+    .modal-title {
+      font-family: 'Marck Script', cursive;
+      font-size: 30px;
+      color: #791c3a;
+      text-align: center;
+      margin: 0 0 10px;
+    }
+
+    .modal-note {
+      text-align: center;
+      color: #7a5a4a;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .collection-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 12px 0;
+    }
+
+    .collection-item {
+      width: 54px;
+      height: 54px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      background: linear-gradient(135deg, #fff7ec, #ffdde9);
+      border: 1px solid rgba(200, 162, 75, 0.28);
+      box-shadow: 0 6px 16px rgba(120, 50, 70, 0.08);
+    }
+
+    #scannerVideo {
+      width: 100%;
+      max-height: 52vh;
+      background: #000;
+      border-radius: 18px;
+      object-fit: cover;
+    }
+
+    .scanner-overlay {
+      position: relative;
+    }
+
+    .scanner-frame {
+      position: absolute;
+      inset: 12% 18%;
+      border: 3px solid rgba(255, 224, 138, 0.9);
+      border-radius: 18px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.18);
+      pointer-events: none;
+    }
+
+    #fxCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    @page {
+      size: 105mm 148mm;
+      margin: 0;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .toolbar, .help, #mobileApp, .modal, #fxCanvas { display: none !important; }
+      .print-wrap { padding: 0; }
+      .print-card {
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+        width: 105mm;
+        height: 148mm;
+      }
+    }
+  </style>
+</head>
+
+<body data-print="front">
+
+  <svg class="svg-defs" aria-hidden="true">
+    <defs>
+      <linearGradient id="goldFoil" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fff1b8" />
+        <stop offset="0.16" stop-color="#d9b45a" />
+        <stop offset="0.34" stop-color="#8b5f1c" />
+        <stop offset="0.52" stop-color="#f6e29b" />
+        <stop offset="0.72" stop-color="#b8860b" />
+        <stop offset="1" stop-color="#7a4d18" />
+      </linearGradient>
+
+      <symbol id="heart" viewBox="0 0 10 10">
+        <path d="M5 8.8C1.8 6.3.6 4.4 1.7 2.9 2.8 1.4 4.6 1.9 5 3.2 5.4 1.9 7.2 1.4 8.3 2.9 9.4 4.4 8.2 6.3 5 8.8Z" />
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="toolbar" id="toolbar">
+    <div class="toolbar-title">Романтический QR-квест • карта сокровищ</div>
+
+    <div class="url-row">
+      <input id="baseUrl" type="text" placeholder="Вставь публичный адрес, например https://имя.github.io/romantic-quest/">
+      <button onclick="applyBaseUrl()">Применить адрес</button>
+    </div>
+
+    <div class="buttons">
+      <button data-print="start" onclick="setPrintMode('start')">Стартовая карточка</button>
+      <button data-print="front" class="active" onclick="setPrintMode('front')">Лицевые стороны</button>
+      <button data-print="back" onclick="setPrintMode('back')">Оборотные стороны</button>
+      <button onclick="testRoute('#start')">Проверить старт</button>
+      <button onclick="openBackupModal()">Ввести коды</button>
+      <button class="primary" onclick="printPdf()">Печать / PDF</button>
+    </div>
+  </div>
+
+  <div class="help" id="help">
+    <b>Как печатать:</b>
+    1) Нажми «Стартовая карточка» и напечатай её отдельно.<br>
+    2) Нажми «Лицевые стороны» и напечатай 8 карточек.<br>
+    3) Переверни стопку так, как требует твой принтер, и напечатай «Оборотные стороны».<br>
+    Обязательно сначала сделай тест на одном листе.<br><br>
+
+    <b>Видео должны лежать в папке media:</b><br>
+    <code>media/start.mp4</code>, <code>media/c1.mp4</code>, <code>media/c2.mp4</code>, ... <code>media/c8.mp4</code>, <code>media/map.mp4</code>, <code>media/love.mp4</code>.<br><br>
+
+    <b>Резервные коды:</b> 47, 08, 93, 22, 61, 15, 84, 03. Они уже напечатаны на лицевых сторонах карточек.
+
+    <div id="baseWarning"></div>
+  </div>
+
+  <main class="print-wrap" id="printView">
+    <section class="sheet-group start-group" id="startGroup"></section>
+    <section class="sheet-group front-group" id="frontGroup"></section>
+    <section class="sheet-group back-group" id="backGroup"></section>
+  </main>
+
+  <div id="mobileApp">
+    <div class="m-stage">
+      <div class="m-inner" id="mobileContent"></div>
+    </div>
+    <a class="m-back" onclick="showPrintView()">← Вернуться к печатным карточкам</a>
+  </div>
+
+  <div class="modal" id="collectionModal">
+    <div class="modal-card">
+      <h2 class="modal-title">Мои фрагменты</h2>
+      <div class="modal-note">Здесь сохраняются найденные части карты сокровищ.</div>
+      <div class="collection-list" id="collectionList"></div>
+      <div class="m-actions" id="collectionActions"></div>
+      <div class="m-actions">
+        <button class="m-secondary" onclick="closeModal('collectionModal')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="backupModal">
+    <div class="modal-card">
+      <h2 class="modal-title">Восстановить фрагменты</h2>
+      <div class="modal-note">Введи числа с карточек, если прогресс в телефоне сбросился.</div>
+      <div class="url-row">
+        <input id="backupCodes" type="text" placeholder="Например: 47 08 93">
+        <button onclick="applyBackupCodes()">Добавить</button>
+      </div>
+      <div class="m-status" id="backupStatus"></div>
+      <div class="m-actions">
+        <button class="m-secondary" onclick="closeModal('backupModal')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="scannerModal">
+    <div class="modal-card">
+      <h2 class="modal-title">Сканировать QR</h2>
+      <div class="scanner-overlay">
+        <video id="scannerVideo" autoplay playsinline muted></video>
+        <div class="scanner-frame"></div>
+      </div>
+      <div class="m-status" id="scannerStatus">Наведи камеру на QR-код.</div>
+      <div class="m-actions">
+        <button class="m-secondary" id="photoScanBtn" onclick="document.getElementById('photoInput').click()">Сфотографировать QR</button>
+        <button class="m-secondary" onclick="closeScanner()">Отмена</button>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+    </div>
+  </div>
+
+  <canvas id="fxCanvas"></canvas>
+  <div id="qrTemp" style="position:absolute;left:-9999px;top:-9999px;"></div>
+
+  <script>
+    const STORAGE_KEY = "romantic-qr-quest-map-puzzle-v1";
+    const FRAGMENT_COUNT = 8;
+
+    const CODE_MAP = {
+      "47": 0,
+      "08": 1,
+      "93": 2,
+      "22": 3,
+      "61": 4,
+      "15": 5,
+      "84": 6,
+      "03": 7
+    };
+
+    const CODE_LIST = ["47", "08", "93", "22", "61", "15", "84", "03"];
+
+    const FRAGMENT_SYMBOLS = ["★", "☾", "", "❖", "", "♛", "", "❤"];
+
+    const NEXT_HINT = [
+      "Следующий свёрток ждёт у раковины.",
+      "Иди к шкафу, где дремлет духовка.",
+      "Следующая тайна — на дверце духовки.",
+      "Иди туда, где светится экран.",
+      "Следующий клад спрятан у морозильника.",
+      "Иди к холодильнику — там живёт новая тайна.",
+      "Путь ведёт в ванную, к зеркалу.",
+      "Все части у тебя. Собери карту сокровищ."
+    ];
+
+    const TEXTS = {
+      start: {
+        title: "Приключение начинается",
+        art: "🗝️",
+        chips: ["Старт", "Карта сокровищ"],
+        text: `Привет, именинница!
+Начинается твоё приключение.
+Рядом уже ждёт первый свёрток.
+Находи карточки, сканируй их и сохраняй фрагменты карты сокровищ.`
+      },
+      map: {
+        title: "Карта сокровищ открыта",
+        art: "🗺️",
+        chips: ["Финальный путь"],
+        text: `Ты прошла все испытания.
+Главное сокровище спрятано там,
+где тебе снятся самые нежные сны.
+Загляни под подушку на большой кровати.`
+      },
+      love: {
+        title: "С днём рождения, любимая",
+        art: "💍",
+        chips: ["Финал", "Я люблю тебя"],
+        text: `Ты собрала карту сокровищ и прошла весь квест.
+Эти серьги — для твоего сияния.
+Ты — моё главное сокровище.
+Я люблю тебя.`
+      }
+    };
+
+    let state = loadState();
+    let assets = { finalQR: null, fragments: [] };
+    let selectedPiece = null;
+    let puzzleSlots = Array(FRAGMENT_COUNT).fill(null);
+
+    let scannerStream = null;
+    let scannerRAF = null;
+    let barcodeDetector = null;
+
+    let fxCanvas = null;
+    let fxCtx = null;
+    let particles = [];
+    let fxRunning = false;
+    let audioCtx = null;
+
+    function esc(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function escAttr(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        const fragments = Array.isArray(parsed.fragments)
+          ? parsed.fragments.slice(0, FRAGMENT_COUNT)
+          : [];
+        while (fragments.length < FRAGMENT_COUNT) fragments.push(false);
+        return {
+          fragments: fragments.map(Boolean),
+          puzzleSolved: Boolean(parsed.puzzleSolved)
+        };
+      } catch (e) {
+        return {
+          fragments: Array(FRAGMENT_COUNT).fill(false),
+          puzzleSolved: false
+        };
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function getBase() {
+      const input = document.getElementById("baseUrl");
+      let base = input ? input.value.trim() : "";
+      if (!base) base = location.href.split("#")[0];
+      return base.split("#")[0];
+    }
+
+    function cardUrl(hash) {
+      return `${getBase()}#${hash}`;
+    }
+
+    function markFragment(index) {
+      if (index < 0 || index >= FRAGMENT_COUNT) return false;
+      if (!state.fragments[index]) {
+        state.fragments[index] = true;
+        saveState();
+        return true;
+      }
+      return false;
+    }
+
+    function allFragments() {
+      return state.fragments.every(Boolean);
+    }
+
+    function foundSymbols() {
+      return state.fragments
+        .map((found, i) => found ? FRAGMENT_SYMBOLS[i] : null)
+        .filter(Boolean);
+    }
+
+    function setPrintMode(mode) {
+      document.body.dataset.print = mode;
+      document.querySelectorAll(".toolbar button[data-print]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.print === mode);
+      });
+      markLastPrintVisible();
+    }
+
+    function markLastPrintVisible() {
+      const cards = Array.from(document.querySelectorAll(".print-card"))
+        .filter(el => getComputedStyle(el).display !== "none");
+      cards.forEach(card => card.classList.remove("last-visible"));
+      if (cards.length) cards[cards.length - 1].classList.add("last-visible");
+    }
+
+    function printPdf() {
+      markLastPrintVisible();
+      setTimeout(() => window.print(), 120);
+    }
+
+    function applyBaseUrl() {
+      prepareAssets().then(() => {
+        const el = document.getElementById("baseWarning");
+        if (el) el.innerHTML = "<b>Готово.</b> QR-коды и фрагменты обновлены. Можно печатать.";
+      });
+    }
+
+    function updateBaseWarning() {
+      const el = document.getElementById("baseWarning");
+      if (!el) return;
+      const base = getBase();
+
+      if (!base) {
+        el.innerHTML = "<b>Вставь публичный адрес</b>, чтобы QR-коды вели на правильную страницу.";
+        return;
+      }
+
+      if (base.startsWith("file://")) {
+        el.innerHTML = `
+          <b>Внимание:</b> сейчас открыт локальный файл.<br>
+          QR-коды будут вести на <code>file://...</code>, и телефон такую ссылку не откроет.<br>
+          Залей файл на GitHub Pages, вставь публичный адрес выше и нажми «Применить адрес».
+        `;
+        return;
+      }
+
+      el.innerHTML = `
+        <b>Адрес для QR:</b> ${esc(base)}<br>
+        Физический финальный QR ведёт на: ${esc(base)}#map
+      `;
+    }
+
+    async function waitFor(check, timeout = 2500) {
+      const start = Date.now();
+      while (Date.now() - start < timeout) {
+        const value = check();
+        if (value) return value;
+        await new Promise(r => setTimeout(r, 80));
+      }
+      return null;
+    }
+
+    async function generateFinalQRData() {
+      const temp = document.getElementById("qrTemp");
+      temp.innerHTML = "";
+
+      if (!window.QRCode) throw new Error("QRCode not loaded");
+
+      new QRCode(temp, {
+        text: cardUrl("map"),
+        width: 512,
+        height: 512,
+        colorDark: "#3d1b26",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      const source = await waitFor(() => {
+        const canvas = temp.querySelector("canvas");
+        if (canvas) return canvas;
+        const img = temp.querySelector("img");
+        if (img && img.complete && img.naturalWidth) return img;
+        return null;
+      });
+
+      if (!source) throw new Error("QR source not ready");
+
+      const qrSize = 512;
+      const pad = 64;
+      const full = qrSize + pad * 2;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = full;
+      canvas.height = full;
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, full, full);
+      ctx.drawImage(source, pad, pad, qrSize, qrSize);
+
+      const finalURL = canvas.toDataURL("image/png");
+
+      const cols = 4;
+      const rows = 2;
+      const pw = full / cols;
+      const ph = full / rows;
+      const fragments = [];
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const pc = document.createElement("canvas");
+          pc.width = pw;
+          pc.height = ph;
+          const pctx = pc.getContext("2d");
+          pctx.imageSmoothingEnabled = false;
+          pctx.drawImage(canvas, c * pw, r * ph, pw, ph, 0, 0, pw, ph);
+          fragments.push(pc.toDataURL("image/png"));
+        }
+      }
+
+      return { finalURL, fragments };
+    }
+
+    async function prepareAssets() {
+      try {
+        assets = await generateFinalQRData();
+      } catch (e) {
+        console.error(e);
+        assets = { finalQR: null, fragments: Array(FRAGMENT_COUNT).fill("") };
+      }
+      renderPrint();
+      updateBaseWarning();
+    }
+
+    function cornerMarksFor(index) {
+      // 0 1 2 3
+      // 4 5 6 7
+      const marks = [];
+      if (index === 0) marks.push(["tl", "◸"]);
+      if (index === 3) marks.push(["tr", "◹"]);
+      if (index === 4) marks.push(["bl", "◺"]);
+      if (index === 7) marks.push(["br", "◿"]);
+
+      if (index === 1 || index === 2) marks.push(["tm", "△"]);
+      if (index === 5 || index === 6) marks.push(["bm", "▽"]);
+      if (index === 4 || index === 5) marks.push(["lm", "◁"]);
+      if (index === 2 || index === 3) marks.push(["rm", "▷"]);
+      if (index === 0) marks.push(["lm", "◁"]);
+      if (index === 7) marks.push(["rm", "▷"]);
+
+      return marks.map(([cls, sym]) => `<span class="corner-mark ${cls}">${sym}</span>`).join("");
+    }
+
+    function renderPrint() {
+      const startGroup = document.getElementById("startGroup");
+      const frontGroup = document.getElementById("frontGroup");
+      const backGroup = document.getElementById("backGroup");
+
+      startGroup.innerHTML = `
+        <article class="print-card start-card">
+          <div class="card-bg"></div>
+          <div class="card-frame"></div>
+          <div class="card-content">
+            <div>
+              <h1 class="card-title">Начни здесь</h1>
+              <div class="card-subtitle">Твоё приключение начинается сейчас</div>
+            </div>
+            <div class="qr-box" data-url="${escAttr(cardUrl("start"))}"></div>
+            <div>
+              <div class="qr-caption">Наведи камеру</div>
+              <div class="back-note">Собирай фрагменты карты сокровищ</div>
+            </div>
+          </div>
+        </article>
+      `;
+
+      frontGroup.innerHTML = CODE_LIST.map((code, i) => `
+        <article class="print-card front-card">
+          <div class="card-bg"></div>
+          <div class="card-frame"></div>
+          <div class="card-content">
+            <div>
+              <h1 class="card-title">Фрагмент карты</h1>
+              <div class="card-subtitle">Отсканируй, чтобы сохранить осколок</div>
+            </div>
+            <div class="qr-box" data-url="${escAttr(cardUrl("c" + (i + 1)))}"></div>
+            <div>
+              <div class="qr-caption">Звёздный фрагмент</div>
+              <div class="restore-code">Код: ${esc(code)}</div>
+            </div>
+          </div>
+        </article>
+      `).join("");
+
+      backGroup.innerHTML = assets.fragments.map((src, i) => `
+        <article class="print-card back-card">
+          <div class="card-bg back-bg"></div>
+          <div class="card-frame"></div>
+          <div class="card-content">
+            <div>
+              <h1 class="card-title">Часть карты</h1>
+              <div class="card-subtitle">Собери на столе</div>
+            </div>
+            <div class="fragment-window">
+              <div class="orientation-mark">↑ верх</div>
+              ${src ? `<img src="${escAttr(src)}" alt="fragment">` : `<div>Генерация…</div>`}
+              ${cornerMarksFor(i)}
+            </div>
+            <div class="back-note">Физический фрагмент финального портала</div>
+          </div>
+        </article>
+      `).join("");
+
+      generateCardQrs();
+      markLastPrintVisible();
+    }
+
+    function generateCardQrs() {
+      const boxes = document.querySelectorAll(".qr-box");
+      boxes.forEach(box => {
+        if (box.dataset.generated === "1") return;
+        box.innerHTML = "";
+        const url = box.dataset.url || "";
+        if (!window.QRCode) {
+          box.innerHTML = `<div style="font-size:8px;text-align:center;color:#7a5a4a;">QR не создан.<br>${esc(url)}</div>`;
+          return;
+        }
+        try {
+          new QRCode(box, {
+            text: url,
+            width: 512,
+            height: 512,
+            colorDark: "#3d1b26",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+          box.dataset.generated = "1";
+        } catch (e) {
+          box.innerHTML = `<div style="font-size:8px;text-align:center;color:#7a5a4a;">Ошибка QR.<br>${esc(url)}</div>`;
+        }
+      });
+    }
+
+    function showPrintView() {
+      history.replaceState(null, "", location.pathname + location.search);
+      document.body.classList.remove("mobile-mode");
+      stopVideoIfNeeded();
+      route();
+    }
+
+    function testRoute(hash) {
+      location.hash = hash;
+    }
+
+    function parseHash(hash) {
+      return String(hash || "").replace(/^#/, "").toLowerCase();
+    }
+
+    function route() {
+      const hash = parseHash(location.hash);
+      if (!hash) {
+        document.body.classList.remove("mobile-mode");
+        return;
+      }
+      document.body.classList.add("mobile-mode");
+      renderRoute(hash);
+    }
+
+    function stopVideoIfNeeded() {
+      const video = document.querySelector("#mobileContent video");
+      if (video) {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      }
+    }
+
+    function renderRoute(hash) {
+      if (hash === "start") return renderVideoRoute("start", TEXTS.start, "media/start.mp4");
+      if (/^c[1-8]$/.test(hash)) {
+        const index = Number(hash.slice(1)) - 1;
+        markFragment(index);
+        return renderFragmentRoute(index);
+      }
+      if (hash === "puzzle") return renderPuzzleRoute();
+      if (hash === "map") return renderMapRoute();
+      if (hash === "love") return renderLoveRoute();
+      return renderNotFound();
+    }
+
+    function baseStage({ art, title, chips, text, videoSrc, status, actions, showFallback = true }) {
+      const content = document.getElementById("mobileContent");
+      content.innerHTML = `
+        <div class="m-art">${art}</div>
+        <h1 class="m-title">${esc(title)}</h1>
+        <div class="m-chip-row">${chips.map(c => `<span class="m-chip">${esc(c)}</span>`).join("")}</div>
+
+        ${videoSrc ? `
+          <div class="video-shell">
+            <video id="routeVideo" playsinline webkit-playsinline preload="metadata"></video>
+            <div class="video-placeholder" id="videoPlaceholder">
+              Нажми кнопку ниже,<br>чтобы включить видеопоздравление
+            </div>
+          </div>
+        ` : ""}
+
+        <div class="m-actions">
+          ${videoSrc ? `<button class="m-play" id="playVideoBtn">▶ Смотреть поздравление</button>` : ""}
+          ${actions.map(a => `<button class="m-secondary" data-action="${escAttr(a.action)}">${esc(a.label)}</button>`).join("")}
+        </div>
+
+        <div class="m-status" id="routeStatus">${esc(status || "")}</div>
+
+        ${showFallback ? `
+          <details class="fallback">
+            <summary>Показать текст подсказки</summary>
+            <div class="m-text">${esc(text)}</div>
+          </details>
+        ` : `<div class="m-text" style="margin-top:14px;">${esc(text)}</div>`}
+      `;
+
+      bindStageActions();
+
+      if (videoSrc) {
+        const video = document.getElementById("routeVideo");
+        const placeholder = document.getElementById("videoPlaceholder");
+        const playBtn = document.getElementById("playVideoBtn");
+        const statusEl = document.getElementById("routeStatus");
+
+        video.src = videoSrc;
+
+        video.addEventListener("error", () => {
+          statusEl.textContent = "Видео не найдено. Пока доступен текст подсказки.";
+          placeholder.style.display = "grid";
+          placeholder.innerHTML = "Видео ещё не загружено.<br>Открой текст подсказки ниже.";
+          playBtn.style.display = "none";
+        });
+
+        const tryPlay = async () => {
+          placeholder.style.display = "none";
+          video.style.display = "block";
+          try {
+            await video.play();
+            statusEl.textContent = "Видео играет.";
+          } catch (e) {
+            video.controls = true;
+            statusEl.textContent = "Нажми прямо на видео, чтобы запустить звук.";
+          }
+        };
+
+        playBtn.addEventListener("click", tryPlay);
+        placeholder.addEventListener("click", tryPlay);
+      }
+    }
+
+    function bindStageActions() {
+      document.querySelectorAll("#mobileContent [data-action]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const action = btn.dataset.action;
+          if (action === "scan") openScanner();
+          else if (action === "collection") openCollection();
+          else if (action === "backup") openBackupModal();
+          else if (action.startsWith("#")) location.hash = action;
+        });
+      });
+    }
+
+    function renderVideoRoute(id, data, videoSrc, extraActions = []) {
+      baseStage({
+        art: data.art,
+        title: data.title,
+        chips: data.chips,
+        text: data.text,
+        videoSrc,
+        status: "Нажми кнопку, чтобы включить видео.",
+        actions: [
+          { label: "📷 Сканировать QR", action: "scan" },
+          { label: "Мои фрагменты", action: "collection" },
+          ...extraActions
+        ]
+      });
+    }
+
+    function renderFragmentRoute(index) {
+      const title = index === FRAGMENT_COUNT - 1
+        ? "Последний фрагмент найден"
+        : "Фрагмент найден";
+
+      const text = `Фрагмент сохранён в твоей карте.\n${NEXT_HINT[index]}`;
+
+      const actions = [
+        { label: "📷 Сканировать следующую карточку", action: "scan" },
+        { label: "Мои фрагменты", action: "collection" }
+      ];
+
+      if (index === FRAGMENT_COUNT - 1 && allFragments()) {
+        actions.push({ label: "Собрать карту сокровищ", action: "#puzzle" });
+      }
+
+      baseStage({
+        art: "✨",
+        title,
+        chips: ["Фрагмент сохранён"],
+        text,
+        videoSrc: `media/c${index + 1}.mp4`,
+        status: "Фрагмент сохранён. Ищи следующий свёрток.",
+        actions
+      });
+    }
+
+    function renderPuzzleRoute() {
+      if (!allFragments()) {
+        baseStage({
+          art: "🧩",
+          title: "Карта ещё не готова",
+          chips: ["Нужны все фрагменты"],
+          text: "Продолжай искать свёртки. Когда все фрагменты будут сохранены, здесь откроется пазл.",
+          videoSrc: null,
+          status: "",
+          actions: [
+            { label: "📷 Сканировать карточку", action: "scan" },
+            { label: "Мои фрагменты", action: "collection" },
+            { label: "Ввести коды", action: "backup" }
+          ],
+          showFallback: false
+        });
+        return;
+      }
+
+      if (state.puzzleSolved) {
+        renderSolvedPuzzle();
+        return;
+      }
+
+      selectedPiece = null;
+      puzzleSlots = Array(FRAGMENT_COUNT).fill(null);
+
+      const content = document.getElementById("mobileContent");
+      const pieces = shuffle([...Array(FRAGMENT_COUNT).keys()]);
+
+      content.innerHTML = `
+        <div class="m-art">🧩</div>
+        <h1 class="m-title">Собери карту сокровищ</h1>
+        <div class="m-chip-row"><span class="m-chip">Перетани или нажимай</span></div>
+        <div class="m-text" style="font-size:16px;margin-bottom:8px;">
+          Выбери фрагмент и поставь его на правильное место.
+        </div>
+
+        <div class="puzzle-board" id="puzzleBoard">
+          ${puzzleSlots.map((_, i) => `<div class="slot" data-slot="${i}"></div>`).join("")}
+        </div>
+
+        <div class="piece-tray" id="pieceTray">
+          ${pieces.map(i => `
+            <div class="piece" data-piece="${i}">
+              <span class="mini-up">↑</span>
+              <img src="${escAttr(assets.fragments[i] || "")}" alt="piece">
+            </div>
+          `).join("")}
+        </div>
+
+        <div class="m-status" id="puzzleStatus">Найди место для каждого фрагмента.</div>
+
+        <div class="m-actions">
+          <button class="m-secondary" onclick="openCollection()">Мои фрагменты</button>
+          <button class="m-secondary" onclick="openBackupModal()">Ввести коды</button>
+        </div>
+      `;
+
+      bindPuzzle();
+    }
+
+    function bindPuzzle() {
+      const tray = document.getElementById("pieceTray");
+      const board = document.getElementById("puzzleBoard");
+      const status = document.getElementById("puzzleStatus");
+
+      tray.addEventListener("click", (e) => {
+        const piece = e.target.closest(".piece");
+        if (!piece) return;
+        document.querySelectorAll(".piece").forEach(p => p.classList.remove("selected"));
+        piece.classList.add("selected");
+        selectedPiece = Number(piece.dataset.piece);
+        status.textContent = "Фрагмент выбран. Нажми на нужное место.";
+      });
+
+      board.addEventListener("click", (e) => {
+        const slot = e.target.closest(".slot");
+        if (!slot || slot.classList.contains("filled")) return;
+        if (selectedPiece === null) {
+          status.textContent = "Сначала выбери фрагмент внизу.";
+          return;
+        }
+
+        const slotIndex = Number(slot.dataset.slot);
+
+        if (slotIndex === selectedPiece) {
+          slot.classList.add("filled");
+          slot.innerHTML = `<img src="${escAttr(assets.fragments[selectedPiece] || "")}" alt="placed">`;
+          const pieceEl = tray.querySelector(`.piece[data-piece="${selectedPiece}"]`);
+          if (pieceEl) pieceEl.remove();
+          puzzleSlots[slotIndex] = selectedPiece;
+          selectedPiece = null;
+          status.textContent = "Фрагмент встал на место.";
+          if (puzzleSlots.every(v => v !== null)) solvePuzzle();
+        } else {
+          slot.classList.add("wrong");
+          setTimeout(() => slot.classList.remove("wrong"), 300);
+          status.textContent = "Этот фрагмент сюда не подходит.";
+        }
+      });
+    }
+
+    function solvePuzzle() {
+      state.puzzleSolved = true;
+      saveState();
+      renderSolvedPuzzle();
+      launchCelebration();
+    }
+
+    function renderSolvedPuzzle() {
+      const content = document.getElementById("mobileContent");
+      content.innerHTML = `
+        <div class="m-art">🎆</div>
+        <h1 class="m-title">Портал открыт</h1>
+        <div class="m-chip-row"><span class="m-chip">Карта собрана</span></div>
+        <img class="solved-qr" src="${escAttr(assets.finalQR || "")}" alt="final qr">
+        <div class="m-text" style="font-size:16px;">
+          Теперь можно открыть карту сокровищ.
+        </div>
+        <div class="m-actions">
+          <button class="m-play" onclick="location.hash='#map'">Открыть карту сокровищ</button>
+          <button class="m-secondary" onclick="openScanner()">Сканировать физический QR</button>
+        </div>
+        <div class="m-status">Физический QR тоже работает, но портал открыт только после пазла.</div>
+      `;
+    }
+
+    function renderMapRoute() {
+      if (!state.puzzleSolved) {
+        baseStage({
+          art: "🔒",
+          title: "Портал закрыт",
+          chips: ["Сначала пазл"],
+          text: "Эта карта ещё закрыта. Собери электронный пазл из найденных фрагментов.",
+          videoSrc: null,
+          status: "",
+          actions: [
+            { label: "Перейти к пазлу", action: "#puzzle" },
+            { label: "Мои фрагменты", action: "collection" }
+          ],
+          showFallback: false
+        });
+        return;
+      }
+
+      renderVideoRoute("map", TEXTS.map, "media/map.mp4", [
+        { label: "Я нашла сокровище", action: "#love" }
+      ]);
+    }
+
+    function renderLoveRoute() {
+      if (!state.puzzleSolved) {
+        baseStage({
+          art: "🔒",
+          title: "Финал ещё закрыт",
+          chips: ["Сначала карта"],
+          text: "Собери карту сокровищ, чтобы открыть финальное поздравление.",
+          videoSrc: null,
+          status: "",
+          actions: [{ label: "Перейти к пазлу", action: "#puzzle" }],
+          showFallback: false
+        });
+        return;
+      }
+
+      renderVideoRoute("love", TEXTS.love, "media/love.mp4", []);
+      setTimeout(launchCelebration, 700);
+    }
+
+    function renderNotFound() {
+      baseStage({
+        art: "🤔",
+        title: "Страница не найдена",
+        chips: ["Ошибка ссылки"],
+        text: "Проверь QR-код или вернись к печатным карточкам.",
+        videoSrc: null,
+        status: "",
+        actions: [{ label: "Вернуться", action: "print" }],
+        showFallback: false
+      });
+      document.querySelector('[data-action="print"]').addEventListener("click", showPrintView);
+    }
+
+    function openCollection() {
+      const list = document.getElementById("collectionList");
+      const actions = document.getElementById("collectionActions");
+      const symbols = foundSymbols();
+
+      list.innerHTML = symbols.length
+        ? symbols.map(s => `<div class="collection-item">${s}</div>`).join("")
+        : `<div class="modal-note">Пока пусто. Найди первый свёрток.</div>`;
+
+      actions.innerHTML = "";
+      if (allFragments() && !state.puzzleSolved) {
+        actions.innerHTML = `<button class="m-play" onclick="closeModal('collectionModal'); location.hash='#puzzle'">Собрать карту сокровищ</button>`;
+      } else if (state.puzzleSolved) {
+        actions.innerHTML = `<button class="m-play" onclick="closeModal('collectionModal'); location.hash='#map'">Открыть карту сокровищ</button>`;
+      }
+
+      document.getElementById("collectionModal").classList.add("open");
+    }
+
+    function openBackupModal() {
+      document.getElementById("backupStatus").textContent = "";
+      document.getElementById("backupModal").classList.add("open");
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("open");
+    }
+
+    function applyBackupCodes() {
+      const value = document.getElementById("backupCodes").value || "";
+      const tokens = value.toUpperCase().match(/\d+/g) || [];
+      let added = 0;
+      let unknown = 0;
+
+      tokens.forEach(token => {
+        const normalized = token.length === 1 ? "0" + token : token;
+        const index = CODE_MAP[normalized];
+        if (index === undefined) {
+          unknown++;
+        } else if (markFragment(index)) {
+          added++;
+        }
+      });
+
+      const status = document.getElementById("backupStatus");
+      if (added > 0) status.textContent = "Фрагменты восстановлены.";
+      else if (unknown > 0) status.textContent = "Часть кодов не найдена.";
+      else status.textContent = "Эти фрагменты уже сохранены.";
+
+      document.getElementById("backupCodes").value = "";
+      if (allFragments() && !state.puzzleSolved) {
+        status.textContent += " Карта готова к сборке.";
+      }
+    }
+
+    function extractHash(text) {
+      const raw = String(text || "").trim();
+      if (!raw) return null;
+      try {
+        const url = new URL(raw);
+        return url.hash ? url.hash.replace("#", "").toLowerCase() : null;
+      } catch (e) {
+        const match = raw.match(/#([a-z0-9]+)/i);
+        return match ? match[1].toLowerCase() : null;
+      }
+    }
+
+    function handleScanned(text) {
+      const hash = extractHash(text);
+      closeScanner();
+      if (!hash) {
+        alert("QR не распознан. Попробуй ещё раз.");
+        return;
+      }
+      location.hash = "#" + hash;
+    }
+
+    async function openScanner() {
+      const modal = document.getElementById("scannerModal");
+      const status = document.getElementById("scannerStatus");
+      modal.classList.add("open");
+      status.textContent = "Запускаю камеру…";
+
+      if ("BarcodeDetector" in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          scannerStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" }
+          });
+          const video = document.getElementById("scannerVideo");
+          video.srcObject = scannerStream;
+          await video.play();
+          status.textContent = "Наведи камеру на QR-код.";
+
+          barcodeDetector = new BarcodeDetector({ formats: ["qr_code"] });
+          scanLoop();
+          return;
+        } catch (e) {
+          status.textContent = "Камера недоступна. Используй кнопку «Сфотографировать QR».";
+        }
+      } else {
+        status.textContent = "Для этого браузера используй кнопку «Сфотографировать QR».";
+      }
+    }
+
+    function scanLoop() {
+      const video = document.getElementById("scannerVideo");
+      const status = document.getElementById("scannerStatus");
+
+      async function tick() {
+        if (!scannerStream || !barcodeDetector) return;
+        try {
+          const codes = await barcodeDetector.detect(video);
+          if (codes && codes.length) {
+            handleScanned(codes[0].rawValue);
+            return;
+          }
+        } catch (e) {}
+        scannerRAF = requestAnimationFrame(tick);
+      }
+
+      scannerRAF = requestAnimationFrame(tick);
+    }
+
+    function closeScanner() {
+      document.getElementById("scannerModal").classList.remove("open");
+      if (scannerRAF) cancelAnimationFrame(scannerRAF);
+      scannerRAF = null;
+      if (scannerStream) {
+        scannerStream.getTracks().forEach(t => t.stop());
+        scannerStream = null;
+      }
+      const video = document.getElementById("scannerVideo");
+      video.srcObject = null;
+    }
+
+    document.getElementById("photoInput").addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const status = document.getElementById("scannerStatus");
+      status.textContent = "Распознаю QR…";
+
+      try {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        await img.decode();
+
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = window.jsQR ? jsQR(imageData.data, canvas.width, canvas.height) : null;
+
+        if (code && code.data) handleScanned(code.data);
+        else status.textContent = "QR не найден. Попробуй сфотографировать крупнее и без бликов.";
+      } catch (err) {
+        status.textContent = "Не удалось обработать фото.";
+      } finally {
+        e.target.value = "";
+      }
+    });
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) audioCtx = new Ctx();
+      }
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playFireworkSound() {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.35);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.5);
+
+      const bufferSize = ctx.sampleRate * 0.45;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+      }
+
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.18, now + 0.08);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 1200;
+      noise.connect(filter).connect(noiseGain).connect(ctx.destination);
+      noise.start(now + 0.08);
+    }
+
+    function resizeFX() {
+      if (!fxCanvas) return;
+      fxCanvas.width = window.innerWidth;
+      fxCanvas.height = window.innerHeight;
+    }
+
+    function startFXLoop() {
+      if (fxRunning) return;
+      fxRunning = true;
+      const loop = () => {
+        if (!fxCtx) return;
+        fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+        particles = particles.filter(p => p.life > 0);
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += p.gravity || 0.08;
+          p.life -= p.decay || 1;
+          p.rotation += p.spin || 0;
+          fxCtx.save();
+          fxCtx.globalAlpha = Math.max(0, p.life / p.maxLife);
+          fxCtx.translate(p.x, p.y);
+          fxCtx.rotate(p.rotation);
+          fxCtx.fillStyle = p.color;
+          if (p.shape === "heart") {
+            fxCtx.font = `${p.size}px serif`;
+            fxCtx.fillText("❤", -p.size / 2, p.size / 2);
+          } else if (p.shape === "star") {
+            fxCtx.font = `${p.size}px serif`;
+            fxCtx.fillText("✦", -p.size / 2, p.size / 2);
+          } else {
+            fxCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.4);
+          }
+          fxCtx.restore();
+        });
+        if (particles.length) requestAnimationFrame(loop);
+        else fxRunning = false;
+      };
+      requestAnimationFrame(loop);
+    }
+
+    function spawnConfetti(count = 90) {
+      const colors = ["#ffd54f", "#f48fb1", "#ff8f6b", "#ce93d8", "#fff3c4", "#e8548c"];
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * fxCanvas.width,
+          y: -20 - Math.random() * 80,
+          vx: (Math.random() - 0.5) * 3,
+          vy: 2 + Math.random() * 4,
+          gravity: 0.05,
+          size: 6 + Math.random() * 8,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 160 + Math.random() * 80,
+          maxLife: 240,
+          decay: 1,
+          rotation: Math.random() * Math.PI,
+          spin: (Math.random() - 0.5) * 0.2,
+          shape: Math.random() > 0.75 ? "heart" : (Math.random() > 0.5 ? "star" : "rect")
+        });
+      }
+      startFXLoop();
+    }
+
+    function spawnFirework(x, y) {
+      const colors = ["#ffd54f", "#f48fb1", "#ff8f6b", "#ce93d8", "#fff3c4"];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      for (let i = 0; i < 70; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 5;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          gravity: 0.06,
+          size: 3 + Math.random() * 4,
+          color,
+          life: 55 + Math.random() * 35,
+          maxLife: 90,
+          decay: 1,
+          rotation: 0,
+          spin: 0,
+          shape: "rect"
+        });
+      }
+      startFXLoop();
+    }
+
+    function launchCelebration() {
+      spawnConfetti(130);
+      playFireworkSound();
+      let bursts = 0;
+      const interval = setInterval(() => {
+        spawnFirework(
+          fxCanvas.width * (0.2 + Math.random() * 0.6),
+          fxCanvas.height * (0.15 + Math.random() * 0.35)
+        );
+        playFireworkSound();
+        bursts++;
+        if (bursts >= 7) clearInterval(interval);
+      }, 320);
+    }
+
+    window.addEventListener("hashchange", route);
+
+    window.addEventListener("load", async () => {
+      fxCanvas = document.getElementById("fxCanvas");
+      fxCtx = fxCanvas.getContext("2d");
+      resizeFX();
+      window.addEventListener("resize", resizeFX);
+
+      document.querySelectorAll(".modal").forEach(modal => {
+        modal.addEventListener("click", (e) => {
+          if (e.target === modal) modal.classList.remove("open");
+        });
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          document.querySelectorAll(".modal.open").forEach(m => m.classList.remove("open"));
+          closeScanner();
+        }
+      });
+
+      const input = document.getElementById("baseUrl");
+      if (input && !input.value) {
+        const base = location.href.split("#")[0];
+        input.value = base;
+      }
+
+      await prepareAssets();
+      route();
+    });
+  </script>
+</body>
+</html>
