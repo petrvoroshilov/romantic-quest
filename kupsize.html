@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Капсайз Мем-Хаб: Поиск, Обводка и PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #f4f4f9; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        h2 { color: #333; margin-top: 0; text-align: center; }
+        
+        .panel { 
+            background: white; 
+            padding: 15px 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            margin-bottom: 15px; 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            justify-content: center; 
+            width: 90%; 
+            max-width: 900px; 
+        }
+        
+        input[type="text"] { 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            flex-grow: 1; 
+            min-width: 200px; 
+            font-size: 15px; 
+        }
+        
+        button { 
+            padding: 10px 16px; 
+            background-color: #4CAF50; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: 0.2s; 
+            font-size: 14px; 
+        }
+        button:hover { opacity: 0.9; }
+        
+        .btn-blue { background-color: #2196F3; }
+        .btn-orange { background-color: #ff9800; }
+        .btn-danger { background-color: #f44336; }
+        
+        #statusMsg { 
+            font-size: 14px; 
+            width: 100%; 
+            text-align: center; 
+            margin-top: 5px; 
+            font-weight: bold;
+        }
+        
+        #previewContainer { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+            gap: 15px; 
+            width: 90%; 
+            max-width: 1000px; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            min-height: 200px; 
+        }
+        
+        .image-card { 
+            position: relative; 
+            background: #fff; 
+            padding: 10px; 
+            border-radius: 6px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        
+        .image-card img { 
+            max-width: 100%; 
+            max-height: 130px; 
+            object-fit: contain; 
+            transition: 0.3s; 
+        }
+        
+        .image-card.outlined { 
+            border: 2px dashed #000; /* Рамка для вырезания квадратом */
+        }
+        
+        .image-card.outlined img { 
+            /* Контур вокруг самой картинки (для ножниц) */
+            filter: drop-shadow(2px 0 0 #000) drop-shadow(-2px 0 0 #000) drop-shadow(0 2px 0 #000) drop-shadow(0 -2px 0 #000); 
+            padding: 4px; 
+        }
+        
+        .delete-btn { 
+            position: absolute; 
+            top: -8px; 
+            right: -8px; 
+            background: #f44336; 
+            color: white; 
+            border: none; 
+            border-radius: 50%; 
+            width: 24px; 
+            height: 24px; 
+            font-size: 14px; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 10; 
+            padding: 0;
+        }
+        
+        /* Скрытый контейнер для идеального PDF А4 */
+        #pdfContainer { 
+            position: absolute; 
+            left: -9999px; 
+            top: 0; 
+            width: 210mm; 
+            padding: 10mm; 
+            background: white; 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 8mm; 
+            box-sizing: border-box; 
+        }
+        
+        #pdfContainer .pdf-item { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            width: 100%; 
+            height: 45mm; 
+        }
+        
+        #pdfContainer img { 
+            max-width: 100%; 
+            max-height: 100%; 
+            object-fit: contain; 
+        }
+        
+        #pdfContainer.outlined img { 
+            filter: drop-shadow(2px 0 0 #000) drop-shadow(-2px 0 0 #000) drop-shadow(0 2px 0 #000) drop-shadow(0 -2px 0 #000); 
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Капсайз Мем-Хаб (Поиск + PDF)</h2>
+
+    <!-- Панель поиска и загрузки -->
+    <div class="panel">
+        <input type="text" id="searchQuery" placeholder="Введите запрос (например: капсайз, cupsize, capsize)..." value="капсайз">
+        <button class="btn-blue" onclick="searchImages()">🔍 Найти картинки</button>
+        <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+        <button onclick="document.getElementById('fileInput').click()">📁 Загрузить с ПК</button>
+        <div id="statusMsg"></div>
+    </div>
+
+    <!-- Панель настроек -->
+    <div class="panel">
+        <button class="btn-blue" id="toggleOutlineBtn" onclick="toggleOutline()">✂️ Контур для вырезки: ВЫКЛ</button>
+        <button class="btn-danger" onclick="clearAll()">🗑 Очистить всё</button>
+        <button class="btn-orange" onclick="generatePDF()">📄 Скачать PDF для печати</button>
+    </div>
+
+    <!-- Галерея картинок -->
+    <div id="previewContainer"></div>
+
+    <!-- Скрытый контейнер для рендера PDF -->
+    <div id="pdfContainer"></div>
+
+    <script>
+        let imagesData = [];
+        let hasOutline = false;
+
+        // --- 1. ПОИСК КАРТИНОК ---
+        async function searchImages() {
+            const query = document.getElementById('searchQuery').value.trim();
+            const status = document.getElementById('statusMsg');
+            
+            if (!query) {
+                alert('Введите поисковый запрос!');
+                return;
+            }
+
+            status.textContent = 'Идет поиск картинок... ⏳';
+            status.style.color = '#2196F3';
+
+            // Используем Reddit Search API для поиска мемов (через CORS-прокси)
+            const redditUrl = `https://www.reddit.com/r/memes/search.json?q=${encodeURIComponent(query)}&restrict_sr=1&limit=20&sort=relevance`;
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(redditUrl)}`;
+
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('Ошибка сети прокси');
+                
+                const data = await response.json();
+                let found = 0;
+
+                // Проверяем структуру ответа Reddit
+                if (data && data.data && data.data.children) {
+                    data.data.children.forEach(item => {
+                        const post = item.data;
+                        // Берем только прямые ссылки на картинки
+                        if (post.url && (post.url.match(/\.(jpeg|jpg|gif|png)$/) != null)) {
+                            addImageToGallery(post.url);
+                            found++;
+                        }
+                    });
+                }
+
+                if (found === 0) {
+                    status.textContent = '⚠️ По этому запросу картинок не найдено. Попробуйте другое слово или загрузите с ПК.';
+                    status.style.color = '#f44336';
+                } else {
+                    status.textContent = `✅ Успешно добавлено ${found} картинок`;
+                    status.style.color = '#4CAF50';
+                }
+            } catch (err) {
+                console.error('Ошибка поиска:', err);
+                status.textContent = '❌ Ошибка соединения с поиском. Загрузите картинки вручную с ПК.';
+                status.style.color = '#f44336';
+            }
+        }
+
+        // --- 2. УПРАВЛЕНИЕ ГАЛЕРЕЕЙ ---
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const files = e.target.files;
+            for (let i = 0; i < files.length; i++) {
+                const reader = new FileReader();
+                reader.onload = (ev) => addImageToGallery(ev.target.result);
+                reader.readAsDataURL(files[i]);
+            }
+            e.target.value = ''; // Очищаем инпут
+        });
+
+        function addImageToGallery(src) {
+            const id = Date.now() + Math.random().toString(36).substr(2, 9);
+            imagesData.push({ id, src });
+            renderGallery();
+        }
+
+        function renderGallery() {
+            const container = document.getElementById('previewContainer');
+            container.innerHTML = '';
+            
+            imagesData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                if (hasOutline) card.classList.add('outlined');
+                
+                card.innerHTML = `
+                    <button class="delete-btn" onclick="removeImage('${item.id}')" title="Удалить">✕</button>
+                    <img src="${item.src}" alt="meme" onerror="this.src='https://via.placeholder.com/130?text=Ошибка'">
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function removeImage(id) {
+            imagesData = imagesData.filter(img => img.id !== id);
+            renderGallery();
+        }
+
+        function clearAll() {
+            if (confirm('Удалить все собранные картинки?')) {
+                imagesData = [];
+                renderGallery();
+            }
+        }
+
+        // --- 3. КОНТУР ДЛЯ ВЫРЕЗКИ ---
+        function toggleOutline() {
+            hasOutline = !hasOutline;
+            const btn = document.getElementById('toggleOutlineBtn');
+            btn.innerText = `✂️ Контур для вырезки: ${hasOutline ? 'ВКЛ' : 'ВЫКЛ'}`;
+            btn.style.backgroundColor = hasOutline ? '#4CAF50' : '#2196F3';
+            renderGallery();
+        }
+
+        // --- 4. ГЕНЕРАЦИЯ PDF ---
+        async function generatePDF() {
+            if (imagesData.length === 0) {
+                alert('Сначала добавьте картинки (найдите или загрузите с ПК)!');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfContainer = document.getElementById('pdfContainer');
+            
+            pdfContainer.innerHTML = '';
+            if (hasOutline) pdfContainer.classList.add('outlined');
+            else pdfContainer.classList.remove('outlined');
+
+            // Заполняем скрытый контейнер
+            imagesData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'pdf-item';
+                div.innerHTML = `<img src="${item.src}">`;
+                pdfContainer.appendChild(div);
+            });
+
+            // Ждем прогрузки картинок (чтобы PDF не был пустым)
+            const imgs = pdfContainer.querySelectorAll('img');
+            await Promise.all(Array.from(imgs).map(img => {
+                return new Promise(res => {
+                    if (img.complete) res();
+                    else { img.onload = res; img.onerror = res; }
+                });
+            }));
+
+            // Рендерим контейнер в картинку
+            const canvas = await html2canvas(pdfContainer, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            
+            // Добавляем на лист А4
+            pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            pdf.save('capsize_print.pdf');
+            
+            // Очищаем временный контейнер
+            pdfContainer.innerHTML = '';
+        }
+    </script>
+</body>
+</html>
