@@ -1,0 +1,2284 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>PQ2 Game — Pokémon GO style catch</title>
+  <style>
+    :root {
+      --bg1: #071227;
+      --bg2: #030814;
+      --card: rgba(255,255,255,.06);
+      --border: rgba(255,255,255,.14);
+      --text: #fff;
+      --muted: rgba(255,255,255,.72);
+      --gold: #f7c948;
+      --green: #4ade80;
+      --red: #ff4d6d;
+      --blue: #4a90e2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top, rgba(38,70,130,.45), transparent 42%),
+        linear-gradient(160deg, var(--bg1), var(--bg2));
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+
+    h1 {
+      margin: 8px 0 12px;
+      font-size: 22px;
+      line-height: 1.15;
+    }
+
+    .controls,
+    .targets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .targets {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    }
+
+    select,
+    button {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      border-radius: 14px;
+      padding: 10px 13px;
+      font: inherit;
+      font-weight: 850;
+      cursor: pointer;
+      outline: none;
+    }
+
+    select { min-width: 150px; }
+
+    button {
+      background: linear-gradient(145deg, var(--blue), #2f6fbf);
+      border: none;
+    }
+
+    button.secondary {
+      background: rgba(255,255,255,.10);
+      border: 1px solid var(--border);
+    }
+
+    button:active { transform: scale(.97); }
+
+    .target-btn {
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      color: #fff;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .target-btn.active {
+      border-color: var(--gold);
+      background: rgba(90,70,20,.28);
+      box-shadow: 0 0 0 1px rgba(247,201,72,.18);
+    }
+
+    .check {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      font-weight: 850;
+      user-select: none;
+    }
+
+    .check input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--gold);
+    }
+
+    .volume {
+      min-width: 190px;
+    }
+
+    .volume input[type="range"] {
+      width: 110px;
+      accent-color: var(--gold);
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+      margin: 10px 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .hud div {
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 9px 11px;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: min(66vh, 560px);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(247,201,72,.12), transparent 28%),
+        linear-gradient(180deg, rgba(10,24,48,.96), rgba(4,10,22,.98));
+      box-shadow: inset 0 0 60px rgba(0,0,0,.35), 0 18px 50px rgba(0,0,0,.28);
+      touch-action: none;
+    }
+
+    #result { min-height: 58px; margin-top: 12px; }
+
+    .success,
+    .miss,
+    .escape {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .success {
+      border-color: rgba(74,222,128,.45);
+      background: rgba(22,80,48,.28);
+    }
+
+    .success.perfect {
+      border-color: rgba(247,201,72,.55);
+      background: rgba(90,70,20,.30);
+      box-shadow: 0 0 0 1px rgba(247,201,72,.18), 0 18px 45px rgba(0,0,0,.25);
+    }
+
+    .miss {
+      border-color: rgba(255,77,109,.35);
+      background: rgba(90,25,40,.22);
+    }
+
+    .escape {
+      border-color: rgba(96,165,250,.35);
+      background: rgba(20,45,90,.24);
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin-top: 12px;
+    }
+
+    .pq2-embed .controls,
+    .pq2-embed .targets,
+    .pq2-embed .hud,
+    .pq2-embed .note {
+      display: none !important;
+    }
+
+    .pq2-embed .wrap {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .pq2-embed canvas {
+      width: 100vw;
+      height: 100vh;
+      border: 0;
+      border-radius: 0;
+    }
+
+    .pq2-embed #result {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      margin: 0;
+      border-radius: 0;
+    }
+
+    .pq2-embed #result button[data-action="next"],
+    .pq2-embed #result button[data-action="boss"] {
+      display: none !important;
+    }
+
+    @media (max-width: 620px) {
+      h1 { font-size: 18px; }
+      select, button, .check { width: 100%; justify-content: center; }
+      .volume { justify-content: space-between; }
+      .targets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      canvas { height: 56vh; border-radius: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>PQ2 Game: поймай подарок шаром</h1>
+
+    <div class="controls">
+      <select id="difficulty">
+        <option value="easy">Легко</option>
+        <option value="normal" selected>Нормально</option>
+        <option value="hard">Сложно</option>
+        <option value="legendary">Легендарно</option>
+      </select>
+
+      <label class="check">
+        <input id="assist" type="checkbox" checked>
+        помощь после промахов
+      </label>
+
+      <label class="check">
+        <input id="sound" type="checkbox" checked>
+        звук
+      </label>
+
+      <label class="check">
+        <input id="haptics" type="checkbox" checked>
+        вибрация
+      </label>
+
+      <label class="check volume">
+        <span>🔊</span>
+        <input id="volume" type="range" min="0" max="1" step="0.05" value="0.85">
+      </label>
+
+      <button id="startBtn">Начать заново</button>
+      <button id="resetBtn" class="secondary">Сброс статистики</button>
+      <button id="soundTestBtn" class="secondary">Тест звука</button>
+    </div>
+
+    <div class="targets" id="targetButtons"></div>
+
+    <div class="hud">
+      <div><span>Статус</span><span id="status">—</span></div>
+      <div><span>Таймер</span><span id="timer">20.0 с</span></div>
+      <div><span>Комбо</span><span id="combo">0</span></div>
+      <div><span>Серия босса</span><span id="bossStreak">—</span></div>
+      <div><span>Счёт</span><span id="score">0</span></div>
+    </div>
+
+    <canvas id="game"></canvas>
+
+    <div id="result"></div>
+
+    <p class="note">
+      Зажми шар пальцем и дёрни ВВЕРХ к подарку. Если звук сначала не играет — нажми “Тест звука” или просто тапни по экрану.
+      Мобильные браузеры разрешают звук только после первого касания.
+    </p>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+
+      const statusEl = document.getElementById('status');
+      const timerEl = document.getElementById('timer');
+      const comboEl = document.getElementById('combo');
+      const bossStreakEl = document.getElementById('bossStreak');
+      const scoreEl = document.getElementById('score');
+      const resultEl = document.getElementById('result');
+      const targetButtonsEl = document.getElementById('targetButtons');
+
+      const difficultyEl = document.getElementById('difficulty');
+      const assistEl = document.getElementById('assist');
+      const soundEl = document.getElementById('sound');
+      const hapticsEl = document.getElementById('haptics');
+      const volumeEl = document.getElementById('volume');
+
+      const URL_PARAMS = new URLSearchParams(location.search);
+      const EMBED_MODE = URL_PARAMS.get('embed') === '1';
+      const PARENT_ORIGIN = URL_PARAMS.get('origin') || '*';
+
+      const TARGETS = [
+        { id: '47', name: 'Фрагмент 47', emoji: '✨', hue: 350, type: 'fragment' },
+        { id: '08', name: 'Фрагмент 08', emoji: '🌸', hue: 320, type: 'fragment' },
+        { id: '93', name: 'Фрагмент 93', emoji: '💫', hue: 210, type: 'fragment' },
+        { id: '22', name: 'Фрагмент 22', emoji: '🎈', hue: 0, type: 'fragment' },
+        { id: '61', name: 'Фрагмент 61', emoji: '🍰', hue: 35, type: 'fragment' },
+        { id: '15', name: 'Фрагмент 15', emoji: '📸', hue: 180, type: 'fragment' },
+        { id: '84', name: 'Фрагмент 84', emoji: '🎵', hue: 270, type: 'fragment' },
+        { id: '03', name: 'Фрагмент 03', emoji: '🔑', hue: 45, type: 'fragment' },
+        { id: 'alexey', name: 'Лёша', emoji: '👦', hue: 205, type: 'route' },
+        { id: 'polina', name: 'Полина', emoji: '👧', hue: 330, type: 'route' },
+        { id: 'pillow', name: 'Подушка', emoji: '🛏️', hue: 180, type: 'route' },
+        {
+          id: 'love',
+          name: 'Главный сюрприз',
+          emoji: '👑',
+          hue: 45,
+          type: 'boss',
+          boss: true,
+          requiredHits: 3,
+          time: 45
+        }
+      ];
+
+      const DIFF = {
+        easy: {
+          label: 'Легко',
+          speed: 1.00,
+          ampX: 0.22,
+          ampY: 0.07,
+          hitbox: 1.55,
+          gravity: 0.30,
+          maxPower: 17,
+          maxDrag: 170,
+          pattern: 'sine',
+          time: 25,
+          timeMult: 1.20,
+          assistSlow: 0.72,
+          pauseMs: 950
+        },
+        normal: {
+          label: 'Нормально',
+          speed: 1.35,
+          ampX: 0.26,
+          ampY: 0.09,
+          hitbox: 1.25,
+          gravity: 0.34,
+          maxPower: 19,
+          maxDrag: 180,
+          pattern: 'figure8',
+          time: 20,
+          timeMult: 1.00,
+          assistSlow: 0.82,
+          pauseMs: 750
+        },
+        hard: {
+          label: 'Сложно',
+          speed: 1.75,
+          ampX: 0.30,
+          ampY: 0.11,
+          hitbox: 1.05,
+          gravity: 0.38,
+          maxPower: 21,
+          maxDrag: 190,
+          pattern: 'lissajous',
+          time: 18,
+          timeMult: 0.90,
+          assistSlow: 0.90,
+          pauseMs: 550
+        },
+        legendary: {
+          label: 'Легендарно',
+          speed: 2.15,
+          ampX: 0.33,
+          ampY: 0.13,
+          hitbox: 0.95,
+          gravity: 0.42,
+          maxPower: 23,
+          maxDrag: 200,
+          pattern: 'lissajous',
+          time: 16,
+          timeMult: 0.80,
+          assistSlow: 0.95,
+          pauseMs: 420
+        }
+      };
+
+      let W = 0;
+      let H = 0;
+      let dpr = 1;
+      let game = null;
+      let last = performance.now();
+      let activeTargetId = TARGETS[0].id;
+
+      let session = defaultSession();
+
+      let AC = null;
+      let master = null;
+      let comp = null;
+      let buffers = {};
+      let audioUnlocked = false;
+      let audioWarned = false;
+
+      const twoPi = Math.PI * 2;
+
+      function $(id) {
+        return document.getElementById(id);
+      }
+
+      function defaultSession() {
+        return {
+          caught: 0,
+          perfect: 0,
+          misses: 0,
+          combo: 0,
+          bestCombo: 0,
+          bonus: 0
+        };
+      }
+
+      function toast(message) {
+        const t = document.createElement('div');
+        t.textContent = message;
+        t.style.cssText = 'position:fixed;left:50%;bottom:140px;transform:translateX(-50%);z-index:9999;background:rgba(8,14,28,.94);border:1px solid rgba(255,255,255,.18);color:#fff;padding:12px 16px;border-radius:16px;font-weight:850;max-width:90vw;text-align:center;';
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2800);
+      }
+
+      function notifyParent(type, payload) {
+        try {
+          if (EMBED_MODE && window.parent && window.parent !== window) {
+            window.parent.postMessage(
+              Object.assign({ type: type }, payload || {}),
+              PARENT_ORIGIN
+            );
+          }
+        } catch (e) {}
+      }
+
+      function notifyParentSuccess(id, perfect) {
+        notifyParent('pq2_success', { id: id, perfect: !!perfect });
+        // Диагностический маркер: в embed при ЖИВОМ мосте iframe скоро удалится и тост исчезнет;
+        // при МЁРТВОМ мосте тост висит ~2.8с на экране игры = сигнал не дошёл.
+        if (EMBED_MODE) { try { toast('📡 сигнал мосту: ' + id); } catch (e) {} }
+        setTimeout(function () {
+          notifyParent('pq2_success', { id: id, perfect: !!perfect });
+        }, 250);
+        setTimeout(function () {
+          notifyParent('pq2_success', { id: id, perfect: !!perfect });
+        }, 700);
+      }
+
+      function clampSample(x) {
+        if (x < -1) return -1;
+        if (x > 1) return 1;
+        return x;
+      }
+
+      function makeBuffer(duration, fill) {
+        const sr = AC.sampleRate;
+        const len = Math.max(1, Math.ceil(sr * duration));
+        const buf = AC.createBuffer(1, len, sr);
+        const d = buf.getChannelData(0);
+        fill(d, sr, len);
+        return buf;
+      }
+
+      function buildBuffers() {
+        buffers.silence = makeBuffer(0.02, function () {});
+
+        buffers.throw = makeBuffer(0.24, function (d, sr, len) {
+          let phase = 0;
+          let lp = 0;
+          let prev = 0;
+
+          for (let i = 0; i < len; i++) {
+            const t = i / sr;
+            const attack = 1 - Math.exp(-t * 120);
+            const decay = Math.exp(-t * 13);
+            const env = attack * decay;
+
+            const n = Math.random() * 2 - 1;
+            lp = lp * 0.55 + n * 0.45;
+            const hp = n - prev;
+            prev = n;
+
+            const f = 1200 * Math.exp(-t * 10) + 220;
+            phase += twoPi * f / sr;
+
+            const ton = Math.sin(phase) * 0.12;
+            const whoosh = (lp * 0.45 + hp * 0.18) * (0.5 + 0.5 * Math.max(0, 1 - t / 0.24));
+
+            d[i] = clampSample((whoosh + ton) * env * 0.75);
+          }
+        });
+
+        buffers.impact = makeBuffer(0.32, function (d, sr, len) {
+          let phase = 0;
+          let lp = 0;
+
+          for (let i = 0; i < len; i++) {
+            const t = i / sr;
+
+            const f = 150 * Math.exp(-t * 9) + 42;
+            phase += twoPi * f / sr;
+
+            const body = Math.sin(phase) * Math.exp(-t * 8) * 0.85;
+
+            const n = Math.random() * 2 - 1;
+            lp = lp * 0.70 + n * 0.30;
+
+            const boom = lp * Math.exp(-t * 24) * 0.45;
+            const click = Math.exp(-t * 180) * 0.18 * n;
+
+            d[i] = clampSample(body + boom + click);
+          }
+        });
+
+        buffers.open = makeBuffer(0.50, function (d, sr, len) {
+          const parts = [880, 1174.66, 1567.98, 2093];
+          let prev = 0;
+
+          for (let i = 0; i < len; i++) {
+            const t = i / sr;
+            const attack = 1 - Math.exp(-t * 100);
+            let s = 0;
+
+            for (let j = 0; j < parts.length; j++) {
+              const f = parts[j];
+              s += Math.sin(twoPi * f * t + j * 0.7) * Math.exp(-t * (7 + j * 1.6)) * 0.13;
+              s += Math.sin(twoPi * f * 2 * t) * Math.exp(-t * (10 + j * 2)) * 0.04;
+            }
+
+            const n = Math.random() * 2 - 1;
+            const hp = n - prev;
+            prev = n;
+            s += hp * Math.exp(-t * 22) * 0.07;
+
+            d[i] = clampSample(s * attack);
+          }
+        });
+
+        buffers.reveal = makeBuffer(0.85, function (d, sr, len) {
+          const notes = [
+            [659.25, 0.00],
+            [783.99, 0.07],
+            [987.77, 0.14],
+            [1318.51, 0.22]
+          ];
+
+          let prev = 0;
+
+          for (let i = 0; i < len; i++) {
+            const t = i / sr;
+            let s = 0;
+
+            for (let k = 0; k < notes.length; k++) {
+              const f = notes[k][0];
+              const start = notes[k][1];
+
+              if (t >= start) {
+                const tt = t - start;
+                const env = (1 - Math.exp(-tt * 90)) * Math.exp(-tt * 5.2);
+
+                s += Math.sin(twoPi * f * tt) * env * 0.19;
+                s += Math.sin(twoPi * f * 2 * tt) * env * 0.055;
+                s += Math.sin(twoPi * f * 3 * tt) * env * 0.018;
+              }
+            }
+
+            const n = Math.random() * 2 - 1;
+            const hp = n - prev;
+            prev = n;
+
+            if (t > 0.18 && t < 0.50) {
+              s += hp * Math.exp(-(t - 0.18) * 18) * 0.05;
+            }
+
+            d[i] = clampSample(s);
+          }
+        });
+
+        buffers.perfect = makeBuffer(1.00, function (d, sr, len) {
+          const notes = [
+            [1046.50, 0.00],
+            [1318.51, 0.055],
+            [1567.98, 0.110],
+            [2093.00, 0.180],
+            [2637.02, 0.260]
+          ];
+
+          let prev = 0;
+
+          for (let i = 0; i < len; i++) {
+            const t = i / sr;
+            let s = 0;
+
+            for (let k = 0; k < notes.length; k++) {
+              const f = notes[k][0];
+              const start = notes[k][1];
+
+              if (t >= start) {
+                const tt = t - start;
+                const env = (1 - Math.exp(-tt * 95)) * Math.exp(-tt * 4.2);
+
+                s += Math.sin(twoPi * f * tt) * env * 0.17;
+                s += Math.sin(twoPi * f * 2 * tt) * env * 0.055;
+                s += Math.sin(twoPi * f * 3 * tt) * env * 0.018;
+              }
+            }
+
+            const n = Math.random() * 2 - 1;
+            const hp = n - prev;
+            prev = n;
+
+            if (t > 0.12 && t < 0.70) {
+              s += hp * Math.exp(-(t - 0.12) * 13) * 0.055;
+            }
+
+            d[i] = clampSample(s);
+          }
+        });
+
+        buffers.bossHit = makeBuffer(0.90, function (d, sr, len) {
+          const notes = [
+            [392.00, 0.040],
+            [523.25, 0.085],
+            [659.25, 0.130],
+            [783.99, 0.175]
+          ];
+
+          let phase = 0;
+          let prev = 0;
+
+          for (let i = 0; i < len; i++) {
+            const t = i / sr;
+            let s = 0;
+
+            if (t < 0.30) {
+              const f = 130 * Math.exp(-t * 8) + 45;
+              phase += twoPi * f / sr;
+              s += Math.sin(phase) * Math.exp(-t * 10) * 0.55;
+            }
+
+            for (let k = 0; k < notes.length; k++) {
+              const f = notes[k][0];
+              const start = notes[k][1];
+
+              if (t >= start) {
+                const tt = t - start;
+                const env = (1 - Math.exp(-tt * 80)) * Math.exp(-tt * 5.0);
+                const saw = 2 * ((tt * f) % 1) - 1;
+
+                s += (saw * 0.35 + Math.sin(twoPi * f * tt) * 0.55) * env * 0.13;
+              }
+            }
+
+            const n = Math.random() * 2 - 1;
+            const hp = n - prev;
+            prev = n;
+            s += hp * Math.exp(-t * 16) * 0.04;
+
+            d[i] = clampSample(s);
+          }
+        });
+
+        buffers.bossFinal = makeBuffer(1.90, function (d, sr, len) {
+          const seq = [
+            [523.25, 0.00, 0.34],
+            [659.25, 0.11, 0.34],
+            [783.99, 0.22, 0.34],
+            [1046.50, 0.33, 0.45],
+            [1318.51, 0.52, 0.95]
+          ];
+
+          const drums = [0.00, 0.52];
+          let prev = 0;
+
+          for (let i = 0; i < len; i++) {
+            const t = i / sr;
+            let s = 0;
+
+            for (let k = 0; k < seq.length; k++) {
+              const f = seq[k][0];
+              const start = seq[k][1];
+              const dur = seq[k][2];
+
+              if (t >= start) {
+                const tt = t - start;
+
+                if (tt < dur + 0.25) {
+                  const release = dur > 0.6 ? 2.1 : 5.2;
+                  const env = (1 - Math.exp(-tt * 55)) * Math.exp(-tt * release);
+                  const vib = 1 + 0.006 * Math.sin(twoPi * 5.7 * tt);
+                  const saw = 2 * ((tt * f * vib) % 1) - 1;
+
+                  s += (saw * 0.42 + Math.sin(twoPi * f * vib * tt) * 0.58) * env * 0.12;
+                }
+              }
+            }
+
+            for (let k = 0; k < drums.length; k++) {
+              const start = drums[k];
+
+              if (t >= start) {
+                const tt = t - start;
+
+                if (tt < 0.35) {
+                  const f = 95 * Math.exp(-tt * 8) + 42;
+                  s += Math.sin(twoPi * f * tt) * Math.exp(-tt * 9) * 0.55;
+                }
+              }
+            }
+
+            const n = Math.random() * 2 - 1;
+
+            if (t >= 0.52) {
+              const hp = n - prev;
+              prev = n;
+              s += hp * Math.exp(-(t - 0.52) * 9) * 0.07;
+            } else {
+              prev = n;
+            }
+
+            d[i] = clampSample(s);
+          }
+        });
+
+        buffers.miss = makeBuffer(0.45, function (d, sr, len) {
+          let phase = 0;
+          let lp = 0;
+
+          for (let i = 0; i < len; i++) {
+            const t = i / sr;
+
+            const f = 230 * Math.exp(-t * 5) + 75;
+            phase += twoPi * f / sr;
+
+            const x = (phase / twoPi) % 1;
+            const saw = 2 * x - 1;
+
+            let s = saw * Math.exp(-t * 7) * 0.22;
+            s += Math.sin(phase) * Math.exp(-t * 8) * 0.12;
+
+            const n = Math.random() * 2 - 1;
+            lp = lp * 0.75 + n * 0.25;
+            s += lp * Math.exp(-t * 18) * 0.16;
+
+            d[i] = clampSample(s);
+          }
+        });
+
+        buffers.escape = makeBuffer(0.75, function (d, sr, len) {
+          let phase = 0;
+          let prev = 0;
+
+          for (let i = 0; i < len; i++) {
+            const t = i / sr;
+
+            const f = 1100 * Math.exp(-t * 4.2) + 120;
+            phase += twoPi * f / sr;
+
+            const x = (phase / twoPi) % 1;
+            const saw = 2 * x - 1;
+
+            let s = Math.sin(phase) * Math.exp(-t * 3.5) * 0.22;
+            s += saw * Math.exp(-t * 4.2) * 0.08;
+
+            const n = Math.random() * 2 - 1;
+            const hp = n - prev;
+            prev = n;
+            s += hp * Math.exp(-t * 8) * 0.035;
+
+            d[i] = clampSample(s);
+          }
+        });
+
+        buffers.combo = makeBuffer(0.45, function (d, sr, len) {
+          const notes = [659.25, 783.99, 987.77, 1174.66, 1318.51, 1567.98];
+
+          for (let i = 0; i < len; i++) {
+            const t = i / sr;
+            let s = 0;
+
+            for (let k = 0; k < notes.length; k++) {
+              const start = k * 0.045;
+
+              if (t >= start) {
+                const tt = t - start;
+
+                if (tt < 0.08) {
+                  const env = (1 - Math.exp(-tt * 200)) * Math.exp(-tt * 45);
+                  const x = (tt * notes[k]) % 1;
+                  const sq = x < 0.5 ? 1 : -1;
+                  s += sq * env * 0.08;
+                }
+              }
+            }
+
+            d[i] = clampSample(s);
+          }
+        });
+      }
+
+      function ensureAudio() {
+        if (AC) return AC;
+
+        try {
+          AC = new (window.AudioContext || window.webkitAudioContext)();
+
+          master = AC.createGain();
+          master.gain.value = Number(volumeEl.value || 0.85);
+
+          comp = AC.createDynamicsCompressor();
+          comp.threshold.value = -10;
+          comp.knee.value = 30;
+          comp.ratio.value = 3;
+          comp.attack.value = 0.004;
+          comp.release.value = 0.18;
+
+          master.connect(comp);
+          comp.connect(AC.destination);
+
+          buildBuffers();
+        } catch (e) {
+          AC = null;
+        }
+
+        return AC;
+      }
+
+      function unlockAudio() {
+        if (!AC || audioUnlocked) return;
+
+        if (AC.state !== 'running') {
+          AC.resume().catch(() => {});
+        }
+
+        try {
+          const src = AC.createBufferSource();
+          src.buffer = buffers.silence;
+          src.connect(master);
+          src.start();
+        } catch (e) {}
+
+        audioUnlocked = true;
+      }
+
+      function resumeAudio() {
+        ensureAudio();
+        if (!AC) return;
+
+        unlockAudio();
+
+        if (AC.state !== 'running') {
+          AC.resume().catch(() => {});
+        }
+
+        if (master) {
+          master.gain.setTargetAtTime(
+            Number(volumeEl.value || 0.85),
+            AC.currentTime,
+            0.02
+          );
+        }
+      }
+
+      function playBuf(name, opts) {
+        if (!soundEl.checked) return;
+
+        const settings = Object.assign({
+          gain: 1,
+          rate: 1,
+          pan: 0,
+          delay: 0,
+          retries: 45
+        }, opts || {});
+
+        const attempt = function (n) {
+          if (!soundEl.checked) return;
+
+          ensureAudio();
+
+          if (!AC || !buffers[name]) {
+            if (n < settings.retries) {
+              setTimeout(function () { attempt(n + 1); }, 30);
+            } else if (!audioWarned) {
+              audioWarned = true;
+              toast('Звук недоступен в этом предпросмотре или браузере');
+            }
+            return;
+          }
+
+          if (AC.state === 'closed') {
+            AC = null;
+            master = null;
+            comp = null;
+            buffers = {};
+            audioUnlocked = false;
+            ensureAudio();
+
+            if (!AC) {
+              if (n < settings.retries) {
+                setTimeout(function () { attempt(n + 1); }, 30);
+              }
+              return;
+            }
+          }
+
+          if (AC.state !== 'running') {
+            AC.resume().catch(() => {});
+
+            if (n < settings.retries) {
+              setTimeout(function () { attempt(n + 1); }, 25);
+            }
+            return;
+          }
+
+          try {
+            const src = AC.createBufferSource();
+            src.buffer = buffers[name];
+            src.playbackRate.value = settings.rate;
+
+            const g = AC.createGain();
+            g.gain.value = Math.max(0, settings.gain);
+
+            src.connect(g);
+
+            if (settings.pan && AC.createStereoPanner) {
+              const p = AC.createStereoPanner();
+              p.pan.value = Math.max(-1, Math.min(1, settings.pan));
+              g.connect(p);
+              p.connect(master);
+            } else {
+              g.connect(master);
+            }
+
+            src.start(AC.currentTime + Math.max(0, settings.delay));
+
+            src.onended = function () {
+              try { src.disconnect(); } catch (e) {}
+              try { g.disconnect(); } catch (e) {}
+            };
+          } catch (e) {
+            if (n < settings.retries) {
+              setTimeout(function () { attempt(n + 1); }, 30);
+            }
+          }
+        };
+
+        attempt(0);
+      }
+
+      function playThrow() {
+        playBuf('throw', { gain: 0.55 });
+      }
+
+      function playImpact() {
+        playBuf('impact', { gain: 0.90 });
+      }
+
+      function playOpen() {
+        playBuf('open', { gain: 0.60, delay: 0.03 });
+      }
+
+      function playReveal(type) {
+        if (type === 'boss-final') {
+          playBuf('bossFinal', { gain: 1.0 });
+        } else if (type === 'boss-hit') {
+          playBuf('bossHit', { gain: 0.90 });
+        } else if (type === 'perfect') {
+          playBuf('perfect', { gain: 0.92 });
+        } else {
+          playBuf('reveal', { gain: 0.92 });
+        }
+      }
+
+      function playMiss() {
+        playBuf('miss', { gain: 0.70 });
+      }
+
+      function playEscape() {
+        playBuf('escape', { gain: 0.65 });
+      }
+
+      function playCombo() {
+        playBuf('combo', { gain: 0.48, delay: 0.18 });
+      }
+
+      function vibrate(pattern) {
+        if (!hapticsEl.checked) return;
+
+        try {
+          if (navigator.vibrate) navigator.vibrate(pattern);
+        } catch (e) {}
+      }
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        W = rect.width;
+        H = rect.height;
+
+        if (game && game.phase === 'ready') {
+          resetBall();
+          game.targetObj.r = Math.max(34, Math.min(W, H) * 0.09);
+        }
+      }
+
+      function buildTargetButtons() {
+        targetButtonsEl.innerHTML = TARGETS.map(function (t) {
+          return '<button class="target-btn ' + (t.id === activeTargetId ? 'active' : '') + '" data-target="' + t.id + '">' + t.emoji + ' ' + t.name + '</button>';
+        }).join('');
+      }
+
+      function nextTargetId(id) {
+        const idx = TARGETS.findIndex(function (t) { return t.id === id; });
+        return TARGETS[(idx + 1) % TARGETS.length].id;
+      }
+
+      function newGame(targetId, difficultyKey) {
+        const target = TARGETS.find(function (t) { return t.id === targetId; }) || TARGETS[0];
+        const d = DIFF[difficultyKey] || DIFF.normal;
+
+        activeTargetId = target.id;
+
+        const baseTime = target.time || d.time;
+        const totalTime = Math.max(8, baseTime * (d.timeMult || 1));
+
+        const ballY = Math.round(H * 0.70);
+
+        game = {
+          target: target,
+          d: d,
+          phase: 'ready',
+          timeLeft: totalTime,
+          timeMax: totalTime,
+          animTime: Math.random() * 100,
+          misses: 0,
+          attempts: 0,
+          autoUsed: false,
+          assistLevel: 0,
+          hits: 0,
+          streak: 0,
+          requiredHits: target.requiredHits || 1,
+          finalHit: false,
+          message: target.boss
+            ? 'Босс: попади ' + (target.requiredHits || 3) + ' раза подряд. Зажми шар и дёргай ВВЕРХ.'
+            : 'Зажми шар пальцем и дёрни ВВЕРХ к подарку. Попади в движущийся подарок.',
+          ball: {
+            x: W / 2,
+            y: ballY,
+            vx: 0,
+            vy: 0,
+            r: 22,
+            launched: false,
+            dragging: false,
+            dragX: W / 2,
+            dragY: ballY,
+            sx: W / 2,
+            sy: ballY
+          },
+          targetObj: {
+            x: W / 2,
+            y: H * 0.34,
+            r: Math.max(34, Math.min(W, H) * 0.09),
+            pausedUntil: 0,
+            glow: 0,
+            speedBoost: 1
+          },
+          burst: null,
+          particles: []
+        };
+
+        resultEl.innerHTML = '';
+        buildTargetButtons();
+        updateHud();
+      }
+
+      function resetBall() {
+        if (!game) return;
+
+        const ballY = Math.round(H * 0.70);
+
+        game.ball.x = W / 2;
+        game.ball.y = ballY;
+        game.ball.vx = 0;
+        game.ball.vy = 0;
+        game.ball.launched = false;
+        game.ball.dragging = false;
+        game.ball.dragX = game.ball.x;
+        game.ball.dragY = ballY;
+        game.ball.sx = game.ball.x;
+        game.ball.sy = ballY;
+      }
+
+      function assistOn() {
+        return !!assistEl.checked;
+      }
+
+      function effectiveSpeed() {
+        if (!game) return 1;
+
+        let s = game.d.speed;
+
+        if (game.target.boss) {
+          s *= game.targetObj.speedBoost;
+        }
+
+        if (assistOn()) {
+          if (game.misses >= 2) s *= game.d.assistSlow;
+          if (game.misses >= 4) s *= 0.86;
+        }
+
+        return s;
+      }
+
+      function hitboxScale() {
+        if (!game) return 1;
+
+        let h = game.d.hitbox;
+
+        if (assistOn()) {
+          if (game.misses >= 2) h *= 1.18;
+          if (game.misses >= 4) h *= 1.15;
+        }
+
+        return h;
+      }
+
+      function updateTarget(now, dt) {
+        if (!game) return;
+
+        const t = game.targetObj;
+
+        if (t.pausedUntil <= now) {
+          game.animTime += dt * effectiveSpeed();
+        }
+
+        const phase = game.animTime;
+        const cx = W / 2;
+        const cy = H * 0.34;
+        const ax = W * game.d.ampX;
+        const ay = H * game.d.ampY;
+
+        let x = cx;
+        let y = cy;
+
+        if (game.d.pattern === 'sine') {
+          x = cx + Math.sin(phase * 1.10) * ax;
+          y = cy + Math.sin(phase * 1.80) * ay;
+        } else if (game.d.pattern === 'figure8') {
+          x = cx + Math.sin(phase * 1.20) * ax;
+          y = cy + Math.sin(phase * 2.20) * ay * 1.25;
+        } else {
+          x = cx + Math.sin(phase * 1.35) * ax;
+          y = cy + Math.sin(phase * 2.05 + Math.PI / 2) * ay * 1.45;
+        }
+
+        t.x = x;
+        t.y = y;
+        t.glow = (Math.sin(phase * 3.1) + 1) / 2;
+      }
+
+      // ===== СВАЙП ВВЕРХ (вместо рогатки) =====
+      // Направление броска = куда потащили палец от точки захвата (sx,sy).
+      // Потянул вверх -> летит вверх; вверх-вбок -> летит вверх-вбок к цели.
+      function launchVelocity() {
+        if (!game) return null;
+
+        const b = game.ball;
+        const sx = (b.sx != null) ? b.sx : b.x;
+        const sy = (b.sy != null) ? b.sy : b.y;
+
+        const dx = b.dragX - sx;
+        const dy = b.dragY - sy;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < 18) return null;   // слишком короткий свайп — не бросок
+        if (dy > -2) return null;     // не вверх — не бросаем (цель всегда выше)
+
+        const power = Math.min(dist, game.d.maxDrag) / game.d.maxDrag * game.d.maxPower;
+        const vx = dx / dist * power;
+        const vy = dy / dist * power; // отрицательный = вверх
+
+        return { vx: vx, vy: vy, power: power };
+      }
+
+      function update(dt, now) {
+        if (!game) return;
+
+        if (game.phase === 'ready' || game.phase === 'flying') {
+          game.timeLeft -= dt;
+
+          if (game.timeLeft <= 0) {
+            escape();
+            return;
+          }
+        }
+
+        if (game.phase === 'ready' || game.phase === 'flying') {
+          updateTarget(now, dt);
+        }
+
+        if (game.phase === 'flying') {
+          updateBall(dt);
+        }
+
+        if (game.phase === 'burst') {
+          updateBurst(now);
+        }
+
+        updateParticles(dt);
+      }
+
+      function updateBall(dt) {
+        const b = game.ball;
+        const step = dt * 60;
+
+        b.vy += game.d.gravity * step;
+        b.x += b.vx * step;
+        b.y += b.vy * step;
+
+        const dx = b.x - game.targetObj.x;
+        const dy = b.y - game.targetObj.y;
+        const dist = Math.hypot(dx, dy);
+
+        const catchRadius = b.r + game.targetObj.r * hitboxScale();
+
+        if (dist <= catchRadius) {
+          const perfect = dist <= game.targetObj.r * 0.34;
+          beginBurst(perfect);
+          return;
+        }
+
+        if (b.y > H + 130 || b.x < -130 || b.x > W + 130) {
+          miss();
+        }
+      }
+
+      function beginBurst(perfect) {
+        if (!game) return;
+
+        const b = game.ball;
+        const t = game.targetObj;
+
+        if (game.autoUsed) {
+          b.x = t.x;
+          b.y = t.y + t.r * 0.35;
+        }
+
+        game.phase = 'burst';
+        b.launched = false;
+        b.dragging = false;
+
+        if (game.target.boss) {
+          game.streak++;
+          game.finalHit = game.streak >= game.requiredHits;
+        }
+
+        game.burst = {
+          start: performance.now(),
+          duration: game.target.boss
+            ? (game.finalHit ? 1250 : 850)
+            : (perfect ? 1000 : 850),
+          perfect: perfect,
+          ballX: b.x,
+          ballY: b.y,
+          targetX: t.x,
+          targetY: t.y,
+          type: game.target.boss ? 'boss' : 'catch'
+        };
+
+        spawnExplosion(t.x, t.y, perfect, game.target.boss, game.finalHit);
+
+        playImpact();
+        playOpen();
+
+        if (game.target.boss) {
+          if (game.finalHit) {
+            game.message = 'Финальный удар! Шар раскрывается...';
+            vibrate([80, 40, 80, 40, 180]);
+          } else {
+            game.message = 'Попадание ' + game.streak + '/' + game.requiredHits + '. Шар раскрылся, подарок ускоряется!';
+            vibrate([55, 30, 55]);
+          }
+        } else {
+          if (perfect) {
+            game.message = 'Идеальное попадание! Шар раскрывается...';
+            vibrate([65, 35, 65, 35, 120]);
+          } else {
+            game.message = 'Есть попадание! Шар раскрывается...';
+            vibrate(55);
+          }
+        }
+
+        resultEl.innerHTML = '';
+        updateHud();
+      }
+
+      function updateBurst(now) {
+        if (!game || !game.burst) return;
+
+        const elapsed = now - game.burst.start;
+        if (elapsed >= game.burst.duration) {
+          resolveBurst();
+        }
+      }
+
+      function resolveBurst() {
+        if (!game || !game.burst) return;
+
+        const b = game.burst;
+        game.burst = null;
+
+        if (game.target.boss) {
+          if (game.finalHit) {
+            game.phase = 'boss_win';
+            session.caught++;
+            if (b.perfect) session.perfect++;
+
+            const comboBonus = applyCombo();
+
+            spawnCelebration(game.targetObj.x, game.targetObj.y, true);
+            playReveal('boss-final');
+            if (comboBonus) playCombo();
+
+            notifyParentSuccess(game.target.id, b.perfect);
+
+            showSuccessResult(b.perfect, true);
+          } else {
+            game.targetObj.speedBoost += 0.22;
+            game.message = 'Попадание ' + game.streak + '/' + game.requiredHits + '. Не сбивай серию!';
+
+            playReveal('boss-hit');
+
+            resetBall();
+            game.phase = 'ready';
+            updateHud();
+          }
+        } else {
+          game.phase = 'caught';
+          session.caught++;
+          if (b.perfect) session.perfect++;
+
+          const comboBonus = applyCombo();
+
+          spawnCelebration(game.targetObj.x, game.targetObj.y, b.perfect);
+          playReveal(b.perfect ? 'perfect' : 'catch');
+          if (comboBonus) playCombo();
+
+          notifyParentSuccess(game.target.id, b.perfect);
+
+          showSuccessResult(b.perfect, false);
+        }
+      }
+
+      function applyCombo() {
+        if (!game) return false;
+
+        if (!game.autoUsed) {
+          session.combo++;
+          session.bestCombo = Math.max(session.bestCombo, session.combo);
+
+          if (session.combo > 0 && session.combo % 3 === 0) {
+            session.bonus += 50;
+            game.message = 'Комбо x' + session.combo + '! Бонус +50.';
+            return true;
+          }
+        } else {
+          session.combo = 0;
+        }
+
+        return false;
+      }
+
+      function miss() {
+        if (!game || game.phase !== 'flying') return;
+
+        game.misses++;
+        session.misses++;
+        session.combo = 0;
+
+        if (game.target.boss && game.streak > 0) {
+          game.streak = 0;
+          game.finalHit = false;
+          game.message = 'Промах! Серия босса сброшена. Попробуй снова.';
+        } else {
+          game.message = 'Мимо. Дёрни выше и сильнее.';
+        }
+
+        if (assistOn() && game.misses >= 2) game.assistLevel = 1;
+        if (assistOn() && game.misses >= 4) game.assistLevel = 2;
+
+        const now = performance.now();
+        const pauseMultiplier = assistOn() && game.misses >= 2 ? 1.55 : 1;
+        game.targetObj.pausedUntil = now + game.d.pauseMs * pauseMultiplier;
+
+        resetBall();
+        game.phase = 'ready';
+
+        playMiss();
+        vibrate([80, 40, 80]);
+
+        showMissResult();
+        updateHud();
+      }
+
+      function escape() {
+        if (!game) return;
+
+        game.phase = 'escaped';
+        game.message = 'Время вышло! Подарок убежал.';
+        session.combo = 0;
+
+        if (game.target.boss) {
+          game.streak = 0;
+          game.finalHit = false;
+        }
+
+        playEscape();
+        vibrate([120, 60, 120]);
+
+        resultEl.innerHTML =
+          '<div class="escape">' +
+            '<b>⏳ ' + game.message + '</b>' +
+            '<button data-action="retry">Попробовать снова</button>' +
+            '<button data-action="next" class="secondary">Следующий подарок</button>' +
+          '</div>';
+
+        updateHud();
+      }
+
+      function canAutoCatch() {
+        return assistOn() && game && game.assistLevel >= 2 && game.phase === 'ready';
+      }
+
+      function autoCatch() {
+        if (!canAutoCatch()) return;
+
+        game.autoUsed = true;
+        session.combo = 0;
+        beginBurst(false);
+      }
+
+      function showMissResult() {
+        if (canAutoCatch()) {
+          resultEl.innerHTML =
+            '<div class="miss">' +
+              '<b>Промахов: ' + game.misses + '</b>' +
+              '<button data-action="auto">Поймать автоматически</button>' +
+              '<button data-action="retry" class="secondary">Попробовать снова</button>' +
+            '</div>';
+        } else {
+          resultEl.innerHTML = '';
+        }
+      }
+
+      function showSuccessResult(perfect, isBoss) {
+        const title = isBoss
+          ? '👑 ФИНАЛЬНЫЙ БОСС ПОВЕРЖЕН'
+          : perfect
+            ? '🎯 Идеально!'
+            : '🎉 Поймано!';
+
+        const sub = isBoss
+          ? 'Главный сюрприз открыт.'
+          : game.target.emoji + ' ' + game.target.name;
+
+        resultEl.innerHTML =
+          '<div class="success ' + (perfect || isBoss ? 'perfect' : '') + '">' +
+            '<div>' +
+              '<b>' + title + '</b><br>' +
+              '<span class="muted">' + sub + '</span>' +
+            '</div>' +
+            '<button data-action="retry">Ещё раз</button>' +
+            '<button data-action="next" class="secondary">Следующий</button>' +
+            (!isBoss ? '<button data-action="boss" class="secondary">К финальному боссу</button>' : '') +
+          '</div>';
+      }
+
+      function spawnExplosion(x, y, perfect, boss, final) {
+        if (!game) return;
+
+        const colors = boss
+          ? (final
+            ? ['#f7c948', '#fff3b0', '#ff4d6d', '#ffffff', '#4ade80']
+            : ['#ff4d6d', '#ffb347', '#ffffff', '#f7c948'])
+          : perfect
+            ? ['#f7c948', '#fff3b0', '#60a5fa', '#ffffff', '#4ade80']
+            : ['#4ade80', '#60a5fa', '#f7c948', '#ffffff'];
+
+        const count = boss && final ? 160 : perfect ? 100 : 75;
+
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 2.5 + Math.random() * (boss && final ? 10 : 7.5);
+
+          game.particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 2.2,
+            life: 45 + Math.random() * 50,
+            size: 3 + Math.random() * 7,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rot: Math.random() * 360,
+            vrot: -9 + Math.random() * 18
+          });
+        }
+      }
+
+      function spawnCelebration(x, y, big) {
+        if (!game) return;
+
+        const colors = big
+          ? ['#f7c948', '#fff3b0', '#ff4d6d', '#ffffff', '#4ade80', '#60a5fa']
+          : ['#f7c948', '#fff3b0', '#4ade80', '#ffffff', '#60a5fa'];
+
+        const count = big ? 130 : 70;
+
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1.5 + Math.random() * (big ? 8 : 5);
+
+          game.particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 3,
+            life: 55 + Math.random() * 55,
+            size: 3 + Math.random() * 8,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rot: Math.random() * 360,
+            vrot: -10 + Math.random() * 20
+          });
+        }
+      }
+
+      function updateParticles(dt) {
+        if (!game) return;
+
+        const step = dt * 60;
+
+        for (const p of game.particles) {
+          p.x += p.vx * step;
+          p.y += p.vy * step;
+          p.vy += 0.13 * step;
+          p.vx *= 0.99;
+          p.rot += p.vrot * step;
+          p.life -= step;
+        }
+
+        game.particles = game.particles.filter(function (p) { return p.life > 0; });
+      }
+
+      function easeOutCubic(x) {
+        return 1 - Math.pow(1 - x, 3);
+      }
+
+      function elasticOut(x) {
+        if (x <= 0) return 0;
+        if (x >= 1) return 1;
+        const p = 0.35;
+        return Math.pow(2, -10 * x) * Math.sin((x - p / 4) * twoPi / p) + 1;
+      }
+
+      function clamp01(x) {
+        return Math.max(0, Math.min(1, x));
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        drawBackground();
+
+        if (!game) return;
+
+        drawTimerBar();
+
+        if (game.phase === 'burst') {
+          drawBurst();
+        } else if (game.phase === 'caught' || game.phase === 'boss_win') {
+          drawCaptured();
+        } else {
+          drawTarget();
+          if (game.phase === 'ready' || game.phase === 'flying') {
+            drawBall();
+          }
+        }
+
+        drawAim();
+        drawParticles();
+        drawMessage();
+      }
+
+      function drawBackground() {
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, 'rgba(12,30,62,.55)');
+        g.addColorStop(1, 'rgba(3,8,18,.15)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.strokeStyle = 'rgba(255,255,255,.045)';
+        ctx.lineWidth = 1;
+
+        for (let x = 0; x < W; x += 42) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, H);
+          ctx.stroke();
+        }
+
+        for (let y = 0; y < H; y += 42) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(W, y);
+          ctx.stroke();
+        }
+      }
+
+      function drawTimerBar() {
+        const pad = 12;
+        const w = W - pad * 2;
+        const h = 8;
+        const percent = Math.max(0, Math.min(1, game.timeLeft / game.timeMax));
+
+        ctx.save();
+
+        ctx.fillStyle = 'rgba(255,255,255,.10)';
+        roundRect(ctx, pad, pad, w, h, 999);
+        ctx.fill();
+
+        const grad = ctx.createLinearGradient(pad, 0, pad + w, 0);
+        if (percent > 0.5) {
+          grad.addColorStop(0, '#4ade80');
+          grad.addColorStop(1, '#f7c948');
+        } else if (percent > 0.22) {
+          grad.addColorStop(0, '#f7c948');
+          grad.addColorStop(1, '#ff8a00');
+        } else {
+          grad.addColorStop(0, '#ff4d6d');
+          grad.addColorStop(1, '#ff8a00');
+        }
+
+        ctx.fillStyle = grad;
+        roundRect(ctx, pad, pad, w * percent, h, 999);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function drawTarget() {
+        const t = game.targetObj;
+        const now = performance.now();
+        const scale = hitboxScale();
+        const paused = t.pausedUntil > now || game.phase === 'escaped';
+        const hue = game.target.hue || 45;
+
+        ctx.save();
+
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.r * scale, 0, Math.PI * 2);
+        ctx.strokeStyle = paused
+          ? 'rgba(96,165,250,.45)'
+          : 'hsla(' + hue + ', 95%, 65%, ' + (0.20 + t.glow * 0.38) + ')';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        const glow = ctx.createRadialGradient(t.x, t.y, t.r * 0.2, t.x, t.y, t.r * 1.8);
+        glow.addColorStop(0, paused ? 'rgba(96,165,250,.30)' : 'hsla(' + hue + ', 95%, 60%, .30)');
+        glow.addColorStop(1, 'rgba(247,201,72,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.r * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        const body = ctx.createRadialGradient(t.x - t.r * 0.25, t.y - t.r * 0.25, t.r * 0.1, t.x, t.y, t.r);
+        body.addColorStop(0, 'rgba(255,255,255,.22)');
+        body.addColorStop(0.45, paused ? 'rgba(55,100,170,.55)' : 'hsla(' + hue + ', 70%, 35%, .55)');
+        body.addColorStop(1, 'rgba(8,14,28,.72)');
+
+        ctx.fillStyle = body;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = paused ? 'rgba(96,165,250,.55)' : 'rgba(255,255,255,.22)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.font = Math.round(t.r * 1.25) + 'px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(game.target.emoji, t.x, t.y + 1);
+
+        if (paused) {
+          ctx.font = 'bold 13px sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,.75)';
+          ctx.fillText(game.phase === 'escaped' ? 'УБЕЖАЛ' : 'ПАУЗА', t.x, t.y + t.r + 18);
+        }
+
+        if (game.target.boss) {
+          const required = game.requiredHits;
+          const dotR = 7;
+          const gap = 24;
+          const startX = t.x - (required - 1) * gap / 2;
+          const y = t.y - t.r - 28;
+
+          ctx.font = 'bold 12px sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,.78)';
+          ctx.fillText('СЕРИЯ ' + game.streak + '/' + required, t.x, y - 16);
+
+          for (let i = 0; i < required; i++) {
+            ctx.beginPath();
+            ctx.arc(startX + i * gap, y, dotR, 0, Math.PI * 2);
+            ctx.fillStyle = i < game.streak ? '#f7c948' : 'rgba(255,255,255,.18)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,.35)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        }
+
+        ctx.restore();
+      }
+
+      function drawBall() {
+        const b = game.ball;
+
+        ctx.save();
+
+        ctx.shadowColor = 'rgba(0,0,0,.45)';
+        ctx.shadowBlur = 18;
+        ctx.shadowOffsetY = 8;
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, Math.PI, 0);
+        ctx.fillStyle = '#e74c3c';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.rect(b.x - b.r, b.y - 3, b.r * 2, 6);
+        ctx.fillStyle = '#111';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r * 0.28, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r * 0.12, 0, Math.PI * 2);
+        ctx.fillStyle = '#111';
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function drawBallHalf(x, y, rot, side, alpha, r) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+        ctx.globalAlpha = alpha;
+
+        ctx.shadowColor = 'rgba(0,0,0,.35)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 5;
+
+        ctx.beginPath();
+        if (side === 'top') {
+          ctx.arc(0, 0, r, Math.PI, 0);
+        } else {
+          ctx.arc(0, 0, r, 0, Math.PI);
+        }
+        ctx.closePath();
+
+        ctx.fillStyle = side === 'top' ? '#e74c3c' : '#fff';
+        ctx.fill();
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-r, 0);
+        ctx.lineTo(r, 0);
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.2, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      function drawGlowEmoji(x, y, size, emoji, hue, alpha) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        const glow = ctx.createRadialGradient(x, y, size * 0.15, x, y, size * 1.45);
+        glow.addColorStop(0, 'hsla(' + hue + ', 95%, 72%, .55)');
+        glow.addColorStop(0.45, 'hsla(' + hue + ', 95%, 60%, .22)');
+        glow.addColorStop(1, 'rgba(255,255,255,0)');
+
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(x, y, size * 1.45, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = Math.round(size) + 'px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,.45)';
+        ctx.shadowBlur = 18;
+        ctx.fillText(emoji, x, y + 1);
+
+        ctx.restore();
+      }
+
+      function drawBurst() {
+        const b = game.burst;
+        if (!b) return;
+
+        const now = performance.now();
+        const p = clamp01((now - b.start) / b.duration);
+        const t = game.targetObj;
+        const x = b.targetX;
+        const y = b.targetY;
+
+        ctx.save();
+        ctx.globalAlpha = 0.22 * (1 - p * 0.75);
+        ctx.beginPath();
+        ctx.arc(x, y, t.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(8,14,28,.45)';
+        ctx.fill();
+        ctx.font = Math.round(t.r * 1.25) + 'px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(game.target.emoji, x, y + 1);
+        ctx.restore();
+
+        const fp = clamp01(p / 0.22);
+        const flashR = t.r * (0.4 + easeOutCubic(fp) * 2.6);
+        const flashA = (1 - fp) * 0.95;
+
+        if (flashA > 0.01) {
+          const g = ctx.createRadialGradient(x, y, 0, x, y, flashR);
+          g.addColorStop(0, 'rgba(255,255,255,' + flashA + ')');
+          g.addColorStop(0.35, b.perfect ? 'rgba(247,201,72,' + (flashA * 0.8) + ')' : 'rgba(255,190,90,.55)');
+          g.addColorStop(1, 'rgba(255,255,255,0)');
+
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(x, y, flashR, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.arc(x, y, t.r * (1 + easeOutCubic(p) * 2.2), 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,' + ((1 - p) * 0.35) + ')';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        const hp = clamp01((p - 0.04) / 0.62);
+        if (hp < 1) {
+          const off = easeOutCubic(hp) * t.r * 2.3;
+          const rot = hp * 1.1;
+          const alpha = 1 - hp * 0.85;
+          const r = t.r * 0.95;
+
+          drawBallHalf(b.ballX - off * 0.32, b.ballY - off, -rot, 'top', alpha, r);
+          drawBallHalf(b.ballX + off * 0.32, b.ballY + off, rot, 'bottom', alpha, r);
+        }
+
+        const gp = clamp01((p - 0.16) / 0.58);
+        if (gp > 0) {
+          const scale = elasticOut(gp);
+          const emoji = b.type === 'boss' && !game.finalHit ? '💥' : game.target.emoji;
+          drawGlowEmoji(x, y, t.r * 1.35 * scale, emoji, game.target.hue, Math.min(1, gp * 1.4));
+        }
+      }
+
+      function drawCaptured() {
+        const t = game.targetObj;
+        const now = performance.now();
+        const pulse = (Math.sin(now / 300) + 1) / 2;
+        const emoji = game.phase === 'boss_win' ? '👑' : game.target.emoji;
+
+        drawGlowEmoji(t.x, t.y, t.r * (1.55 + pulse * 0.12), emoji, game.target.hue, 1);
+
+        ctx.save();
+        ctx.strokeStyle = 'hsla(' + game.target.hue + ', 95%, 70%, ' + (0.25 + pulse * 0.25) + ')';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.r * (1.8 + pulse * 0.2), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawAim() {
+        const b = game.ball;
+
+        if (!b.dragging || b.launched || game.phase !== 'ready') return;
+
+        const vel = launchVelocity();
+        if (!vel) return;
+
+        ctx.save();
+
+        // линия от шара в точку пальца (показывает направление свайпа)
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(b.dragX, b.dragY);
+        ctx.strokeStyle = 'rgba(255,255,255,.28)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 8]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // предпросмотр траектории по направлению свайпа
+        let x = b.x;
+        let y = b.y;
+        let vx = vel.vx;
+        let vy = vel.vy;
+
+        for (let i = 0; i < 34; i++) {
+          vy += game.d.gravity;
+          x += vx;
+          y += vy;
+
+          const alpha = 0.42 - i * 0.011;
+          if (alpha <= 0) break;
+
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(247,201,72,' + alpha + ')';
+          ctx.fill();
+        }
+
+        // сила = длина СВАЙПА (палец от точки захвата), не расстояние шар-палец
+        const sx = (b.sx != null) ? b.sx : b.x;
+        const sy = (b.sy != null) ? b.sy : b.y;
+        const powerPercent = Math.min(1, Math.hypot(b.dragX - sx, b.dragY - sy) / game.d.maxDrag);
+        const barW = 120;
+        const barH = 10;
+        const barX = b.x - barW / 2;
+        const barY = b.y + 42;
+
+        ctx.fillStyle = 'rgba(255,255,255,.12)';
+        roundRect(ctx, barX, barY, barW, barH, 999);
+        ctx.fill();
+
+        const grad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+        grad.addColorStop(0, '#4ade80');
+        grad.addColorStop(0.6, '#f7c948');
+        grad.addColorStop(1, '#ff4d6d');
+
+        ctx.fillStyle = grad;
+        roundRect(ctx, barX, barY, barW * powerPercent, barH, 999);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        if (!game) return;
+
+        ctx.save();
+
+        for (const p of game.particles) {
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot * Math.PI / 180);
+          ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 45));
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.62);
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      function drawMessage() {
+        ctx.save();
+
+        ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = 'rgba(255,255,255,.78)';
+        ctx.shadowColor = 'rgba(0,0,0,.45)';
+        ctx.shadowBlur = 12;
+
+        ctx.fillText(game.message, W / 2, 30);
+
+        ctx.restore();
+      }
+
+      function roundRect(c, x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+        c.beginPath();
+        c.moveTo(x + radius, y);
+        c.arcTo(x + w, y, x + w, y + h, radius);
+        c.arcTo(x + w, y + h, x, y + h, radius);
+        c.arcTo(x, y + h, x, y, radius);
+        c.arcTo(x, y, x + w, y, radius);
+        c.closePath();
+      }
+
+      function updateHud() {
+        if (!game) return;
+
+        statusEl.textContent = game.message;
+
+        if (game.phase === 'caught' || game.phase === 'boss_win' || game.phase === 'escaped') {
+          timerEl.textContent = '—';
+        } else {
+          timerEl.textContent = Math.max(0, game.timeLeft).toFixed(1) + ' с';
+        }
+
+        comboEl.textContent = session.combo + (session.bestCombo ? ' (лучшее ' + session.bestCombo + ')' : '');
+
+        bossStreakEl.textContent = game.target.boss
+          ? game.streak + '/' + game.requiredHits
+          : '—';
+
+        const points = session.caught * 10 + session.perfect * 15 + session.bonus;
+        scoreEl.textContent = points + ' | поймано ' + session.caught + ' | идеальных ' + session.perfect + ' | промахов ' + session.misses;
+      }
+
+      function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        };
+      }
+
+      canvas.addEventListener('pointerdown', function (e) {
+        resumeAudio();
+
+        if (!game || game.phase !== 'ready' || game.ball.launched) return;
+
+        const p = getPos(e);
+        const b = game.ball;
+        const dist = Math.hypot(p.x - b.x, p.y - b.y);
+
+        if (dist < 110) {
+          b.dragging = true;
+          b.dragX = p.x;
+          b.dragY = p.y;
+          b.sx = p.x;   // точка захвата — от неё считаем свайп
+          b.sy = p.y;
+
+          try {
+            canvas.setPointerCapture(e.pointerId);
+          } catch (err) {}
+
+          e.preventDefault();
+        }
+      });
+
+      window.addEventListener('pointermove', function (e) {
+        if (!game || !game.ball.dragging) return;
+
+        const p = getPos(e);
+        game.ball.dragX = p.x;
+        game.ball.dragY = p.y;
+      });
+
+      window.addEventListener('pointerup', function (e) {
+        if (!game || !game.ball.dragging) return;
+
+        const p = getPos(e);
+        const b = game.ball;
+
+        b.dragging = false;
+        b.dragX = p.x;
+        b.dragY = p.y;
+
+        const vel = launchVelocity();
+
+        if (vel) {
+          b.vx = vel.vx;
+          b.vy = vel.vy;
+          b.launched = true;
+          game.phase = 'flying';
+          game.attempts++;
+          game.message = 'Бросок...';
+
+          playThrow();
+          vibrate(18);
+
+          resultEl.innerHTML = '';
+          updateHud();
+        } else {
+          game.message = 'Зажми шар и дёрни ВВЕРХ (или вверх-вбок) к подарку.';
+          updateHud();
+        }
+      });
+
+      targetButtonsEl.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-target]');
+        if (!btn) return;
+
+        resumeAudio();
+        newGame(btn.dataset.target, difficultyEl.value);
+      });
+
+      resultEl.addEventListener('click', function (e) {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+
+        resumeAudio();
+
+        const action = btn.dataset.action;
+
+        if (action === 'retry') {
+          newGame(activeTargetId, difficultyEl.value);
+        }
+
+        if (action === 'next') {
+          newGame(nextTargetId(activeTargetId), difficultyEl.value);
+        }
+
+        if (action === 'auto') {
+          autoCatch();
+        }
+
+        if (action === 'boss') {
+          newGame('love', difficultyEl.value);
+        }
+      });
+
+      $('startBtn').addEventListener('click', function () {
+        resumeAudio();
+        newGame(activeTargetId, difficultyEl.value);
+      });
+
+      $('resetBtn').addEventListener('click', function () {
+        resumeAudio();
+        session = defaultSession();
+        newGame(activeTargetId, difficultyEl.value);
+      });
+
+      $('soundTestBtn').addEventListener('click', function () {
+        resumeAudio();
+
+        playBuf('impact', { gain: 0.80 });
+        playBuf('open', { gain: 0.55, delay: 0.04 });
+        playBuf('reveal', { gain: 0.90, delay: 0.35 });
+
+        playBuf('impact', { gain: 0.80, delay: 1.00 });
+        playBuf('open', { gain: 0.55, delay: 1.04 });
+        playBuf('perfect', { gain: 0.90, delay: 1.35 });
+
+        playBuf('impact', { gain: 0.80, delay: 2.05 });
+        playBuf('open', { gain: 0.55, delay: 2.09 });
+        playBuf('bossHit', { gain: 0.90, delay: 2.40 });
+
+        playBuf('impact', { gain: 0.80, delay: 3.05 });
+        playBuf('open', { gain: 0.55, delay: 3.09 });
+        playBuf('bossFinal', { gain: 1.0, delay: 3.40 });
+      });
+
+      difficultyEl.addEventListener('change', function () {
+        resumeAudio();
+        newGame(activeTargetId, difficultyEl.value);
+      });
+
+      assistEl.addEventListener('change', function () {
+        if (game) {
+          game.message = assistOn()
+            ? 'Помощь включена: после промахов подарок станет медленнее.'
+            : 'Помощь выключена: только чистый навык.';
+          updateHud();
+        }
+      });
+
+      volumeEl.addEventListener('input', function () {
+        if (AC && master) {
+          master.gain.setTargetAtTime(Number(volumeEl.value), AC.currentTime, 0.02);
+        }
+      });
+
+      ['pointerdown', 'touchstart', 'mousedown', 'keydown'].forEach(function (evt) {
+        window.addEventListener(evt, function () {
+          resumeAudio();
+        }, { passive: true });
+      });
+
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) resumeAudio();
+      });
+
+      function loop(now) {
+        const dt = Math.min((now - last) / 1000, 0.05);
+        last = now;
+
+        update(dt, now);
+        draw();
+
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener('resize', resize);
+
+      if (EMBED_MODE) {
+        document.body.classList.add('pq2-embed');
+      }
+
+      const requestedTarget = URL_PARAMS.get('target');
+      const initialTarget = TARGETS.some(function (t) {
+        return t.id === requestedTarget;
+      }) ? requestedTarget : TARGETS[0].id;
+
+      const requestedDifficulty = URL_PARAMS.get('difficulty');
+      const initialDifficulty = DIFF[requestedDifficulty]
+        ? requestedDifficulty
+        : difficultyEl.value;
+
+      difficultyEl.value = initialDifficulty;
+
+      resize();
+      newGame(initialTarget, initialDifficulty);
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
