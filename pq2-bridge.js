@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BRIDGE_VERSION = 'v6';
+  const BRIDGE_VERSION = 'v7';
 
   const ADMIN_LOGIN = '9ноября';
   const ADMIN_PASSWORD = '9ноября';
@@ -146,7 +146,22 @@
     }
   }
 
-  function applyGameUiClass(on) {
+  // ГЛАВНЫЙ ФИКС: скрывать страницу ТОЛЬКО когда реально есть активный слой.
+  function hasActiveLayer() {
+    if (gameOverlay && document.body.contains(gameOverlay)) return true;
+
+    const v = $('pq2-video-layer');
+    if (v && v.classList.contains('open')) return true;
+
+    const m = $('pq2-modal-layer');
+    if (m && document.body.contains(m)) return true;
+
+    return false;
+  }
+
+  function refreshGameUi() {
+    const on = isGameMode() && hasActiveLayer();
+
     if (on) {
       document.documentElement.classList.add('pq2-game-active');
     } else {
@@ -479,6 +494,7 @@
     const layer = $('pq2-modal-layer');
     if (layer) layer.remove();
     modalCallback = null;
+    refreshGameUi();
   }
 
   function showModal(title, bodyHtml, confirmText, onConfirm) {
@@ -518,6 +534,8 @@
       const confirmBtn = $('pq2-modal-confirm');
       if (confirmBtn) confirmBtn.style.display = 'none';
     }
+
+    refreshGameUi();
   }
 
   function openLogin(fromExplicitUrl) {
@@ -585,6 +603,8 @@
       const first = $('pq2-login-user');
       if (first) first.focus();
     }, 80);
+
+    refreshGameUi();
   }
 
   function openPanel() {
@@ -714,6 +734,8 @@
     player.onended = function () {
       setTimeout(closeVideo, 500);
     };
+
+    refreshGameUi();
   }
 
   function closeVideo() {
@@ -736,6 +758,8 @@
     videoCallback = null;
 
     if (cb) cb();
+
+    refreshGameUi();
   }
 
   function closeGame() {
@@ -745,6 +769,7 @@
     }
 
     activeCode = null;
+    refreshGameUi();
   }
 
   function openGame(code) {
@@ -770,6 +795,8 @@
       '<iframe id="pq2-game-frame" src="' + src + '" allow="autoplay; encrypted-media; fullscreen; vibrate"></iframe>';
 
     document.body.appendChild(gameOverlay);
+
+    refreshGameUi();
   }
 
   function openPillowCheckpoint(autoContinue) {
@@ -1001,45 +1028,57 @@
 
   function route() {
     if (!isGameMode()) {
-      applyGameUiClass(false);
       closeGame();
+      refreshGameUi();
       return;
     }
 
-    applyGameUiClass(true);
-
     const videoLayer = $('pq2-video-layer');
-    if (videoLayer && videoLayer.classList.contains('open')) return;
+    if (videoLayer && videoLayer.classList.contains('open')) {
+      refreshGameUi();
+      return;
+    }
 
     const code = canonicalCode(getCodeFromUrl());
 
     if (!code) {
+      // Нет хэша / кода — НЕ скрываем страницу. Показываем обычный интерфейс.
       closeGame();
+      refreshGameUi();
       return;
     }
 
     if (isHubCode(code)) {
       handleHub(code);
+      refreshGameUi();
       return;
     }
 
-    if (!TARGETS[code]) return;
+    if (!TARGETS[code]) {
+      refreshGameUi();
+      return;
+    }
 
     if (gameOverlay && activeCode !== code) {
       closeGame();
     }
 
-    if (activeCode === code && gameOverlay) return;
+    if (activeCode === code && gameOverlay) {
+      refreshGameUi();
+      return;
+    }
 
     const progress = loadProgress();
 
     if (isDone(progress, code)) {
       replayTarget(code);
+      refreshGameUi();
       return;
     }
 
     if (!isUnlocked(progress, code)) {
       lockedTarget(code);
+      refreshGameUi();
       return;
     }
 
@@ -1056,15 +1095,18 @@
         );
       });
 
+      refreshGameUi();
       return;
     }
 
     if (code === 'pillow') {
       openPillowCheckpoint(false);
+      refreshGameUi();
       return;
     }
 
     openGame(code);
+    refreshGameUi();
   }
 
   function pauseForeignMedia() {
@@ -1198,11 +1240,7 @@
       history.replaceState({}, '', location.pathname + location.hash);
     }
 
-    const game = isGameMode();
-
-    applyGameUiClass(game);
-
-    if (game) {
+    if (isGameMode()) {
       patchOldQuest();
       startGuard();
     } else {
@@ -1212,6 +1250,7 @@
     }
 
     route();
+    refreshGameUi();
 
     window.addEventListener('hashchange', function () {
       setTimeout(route, 50);
