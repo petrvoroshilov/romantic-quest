@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Романтический QR-квест — семейная карта сокровищ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Marck+Script&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrous@4.0.2/dist/qrious.min.js"></script>
+<style>
+:root{--paper:#fffdf8;--ink:#47241d;--wine:#791c3a;--gold:#c8a24b;--rose:#e8548c}
+*{box-sizing:border-box}
+html{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+body{margin:0;min-height:100vh;font-family:'PT Serif',Georgia,serif;color:var(--ink);
+ background:radial-gradient(circle at 15% 8%,rgba(232,84,140,.20),transparent 30%),radial-gradient(circle at 85% 15%,rgba(255,224,138,.22),transparent 26%),radial-gradient(circle at 50% 85%,rgba(181,126,220,.16),transparent 32%),#efe7e2}
+body.dark{background:#030814;color:#fff;overflow-x:hidden}
+.toolbar{position:sticky;top:0;z-index:50;padding:12px 14px;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);border-bottom:1px solid rgba(180,145,95,.25);text-align:center}
+.toolbar-title{font-family:'Cormorant Garamond',Georgia,serif;font-weight:700;color:#6b2c3f;margin-bottom:9px;font-size:16px}
+.buttons,.url-row{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+.url-row{margin-bottom:8px}
+input[type=text]{min-width:min(520px,88vw);padding:10px 12px;border-radius:999px;border:1px solid rgba(168,129,70,.35);font:inherit;color:#4a2b25;background:#fff}
+button{border:1px solid rgba(168,129,70,.35);background:rgba(255,255,255,.94);color:#5a3327;border-radius:999px;padding:9px 14px;font:inherit;font-size:14px;cursor:pointer;transition:.18s}
+button:hover{border-color:var(--gold);color:var(--wine)}
+button.active{background:linear-gradient(135deg,#fff3d6,#ffd9e6);border-color:var(--gold);color:var(--wine);font-weight:700}
+button.primary{background:linear-gradient(135deg,#ffe9a8,#e0b25c 32%,#a06a1f 62%,#ffdf8f);color:#fff;border-color:transparent;font-weight:700;box-shadow:0 6px 18px rgba(160,106,31,.28)}
+.help{max-width:1000px;margin:16px auto 0;padding:14px 18px;background:rgba(255,255,255,.9);border:1px solid rgba(200,140,90,.25);border-radius:16px;font-size:14px;line-height:1.5;color:#5a3327}
+.help b{color:var(--wine)}
+#baseWarning{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(255,244,225,.85);border:1px solid rgba(200,162,75,.25);color:#6b3a2a;font-size:13px}
+.print-wrap{padding:24px 14px 90px}
+.print-group{display:none}
+body[data-print=start] #startGroup,body[data-print=front] #frontGroup,body[data-print=back] #backGroup,body[data-print=children] #childGroup,body[data-print=final] #finalGroup{display:block}
+.print-card{position:relative;width:105mm;height:148mm;margin:22px auto;overflow:hidden;background:var(--paper);box-shadow:0 20px 55px rgba(90,30,50,.22);page-break-inside:avoid;break-inside:avoid;page-break-after:always;break-after:page;border-radius:1.2mm}
+.print-card.last-visible{page-break-after:auto;break-after:auto}
+.card-bg{position:absolute;inset:0;background:linear-gradient(140deg,#fff8ec,#ffe9d8 26%,#ffdbe8 52%,#ffcee0 76%,#ffc3d8)}
+.card-bg.back-bg{background:linear-gradient(140deg,#fff3f0,#ffdce8 30%,#f9c0d8 58%,#efa5c7 82%,#e594bd)}
+.card-bg.child-bg{background:linear-gradient(140deg,#fff8ec,#e8f7ff 28%,#ffdbe8 58%,#ffe7b8)}
+.card-frame{position:absolute;inset:4mm;border:.45mm solid rgba(200,162,75,.9);border-radius:2mm;pointer-events:none}
+.card-frame::after{content:"";position:absolute;inset:1.2mm;border:.16mm solid rgba(232,84,140,.45);border-radius:1.4mm}
+.card-content{position:relative;z-index:2;height:100%;padding:9mm 8mm 8mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center}
+.card-title{font-family:'Marck Script',cursive;font-size:7.8mm;line-height:1.05;color:var(--wine);margin:0 0 2mm}
+.card-subtitle{font-family:'Cormorant Garamond',Georgia,serif;font-size:3.8mm;font-weight:700;color:#6b3a2a;margin-bottom:3mm}
+.qr-box{width:50mm;height:50mm;background:#fff;border:.35mm solid rgba(139,95,28,.55);border-radius:2mm;padding:2.6mm;display:grid;place-items:center;overflow:hidden;box-shadow:0 1.2mm 4mm rgba(90,30,50,.14)}
+.qr-box img,.qr-box canvas{width:100%!important;height:100%!important;display:block;image-rendering:pixelated;object-fit:contain}
+.qr-caption{margin-top:3mm;font-family:'Cormorant Garamond',Georgia,serif;font-size:3.4mm;font-weight:700;color:#6b3a2a;text-transform:uppercase}
+.restore-code{margin-top:3mm;font-family:'Cormorant Garamond',Georgia,serif;font-size:4.2mm;font-weight:700;color:#5d142b}
+.fragment-window{width:50mm;aspect-ratio:1/2;background:#fff;border:.35mm solid rgba(139,95,28,.55);border-radius:2mm;padding:2mm;display:grid;place-items:center;position:relative;overflow:hidden}
+.orientation-mark{position:absolute;top:1mm;left:50%;transform:translateX(-50%);font-size:3.4mm;color:rgba(109,52,28,.75);font-weight:700;z-index:2}
+.corner-mark{position:absolute;font-size:4mm;color:rgba(200,162,75,.85);z-index:2}
+.corner-mark.tl{top:1mm;left:1.2mm}.corner-mark.tr{top:1mm;right:1.2mm}.corner-mark.bl{bottom:1mm;left:1.2mm}.corner-mark.br{bottom:1mm;right:1.2mm}
+.corner-mark.tm{top:1mm;left:50%;transform:translateX(-50%)}.corner-mark.bm{bottom:1mm;left:50%;transform:translateX(-50%)}.corner-mark.lm{left:1.2mm;top:50%;transform:translateY(-50%)}.corner-mark.rm{right:1.2mm;top:50%;transform:translateY(-50%)}
+.back-note{margin-top:3mm;font-family:'Cormorant Garamond',Georgia,serif;font-size:3.2mm;font-weight:700;color:#6b3a2a}
+.final-qr-print{width:78mm;height:78mm;background:#fff;border:.35mm solid rgba(139,95,28,.55);border-radius:2mm;padding:3mm;display:grid;place-items:center;overflow:hidden}
+.final-qr-print img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;display:block}
+.qr-fragment{position:relative;width:100%;height:100%;overflow:hidden;background:#fff}
+.qr-fragment img{position:absolute;display:block;width:400%;height:200%;max-width:none;max-height:none;image-rendering:pixelated}
+.piece-empty{display:grid;place-items:center;width:100%;height:100%;font-size:11px;color:#7a5a4a;text-align:center;padding:4px}
+#app{display:none;min-height:100vh;padding:16px 14px 50px;flex-direction:column;align-items:center}
+body.dark #app{display:flex}
+.stage{width:min(560px,100%);background:rgba(255,253,248,.97);color:#3d1b26;border-radius:26px;padding:20px 16px 22px;box-shadow:0 24px 70px rgba(50,10,30,.28);border:1px solid rgba(200,162,75,.35);position:relative;overflow:hidden}
+.art{height:78px;display:grid;place-items:center;font-size:54px}
+.title{font-family:'Marck Script',cursive;color:#791c3a;text-align:center;font-size:34px;line-height:1.05;margin:2px 0 10px}
+.chip-row{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{background:linear-gradient(135deg,#fff0bd,#f5c8d8);color:#5b2410;border:1px solid rgba(200,162,75,.35);border-radius:999px;padding:7px 11px;font-size:13px;font-weight:700}
+.vshell{position:relative;width:100%;max-width:420px;margin:0 auto 10px;aspect-ratio:9/16;max-height:58vh;border-radius:22px;overflow:hidden;background:#160810}
+.vshell video{width:100%;height:100%;object-fit:contain;background:#160810;display:block}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.play{background:linear-gradient(135deg,#ffe9a8,#e0b25c 32%,#a06a1f 62%,#ffdf8f);color:#fff;border:none;border-radius:999px;padding:13px 18px;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.sec{background:rgba(121,28,58,.08);border:1px solid rgba(121,28,58,.2);color:#791c3a;border-radius:999px;padding:11px 14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.status{text-align:center;font-size:13px;color:#8a6754;min-height:18px;margin-top:8px}
+.txt{font-family:'Cormorant Garamond','PT Serif',Georgia,serif;font-size:18px;line-height:1.45;text-align:center;white-space:pre-line;margin-top:10px;color:#3d1b26;font-weight:600}
+.back-link{margin-top:14px;display:block;width:min(560px,100%);text-align:center;color:rgba(255,245,232,.85);font-size:13px;cursor:pointer}
+.solved-qr{width:min(320px,82vw);margin:12px auto;display:block;border-radius:16px;border:1px solid rgba(200,162,75,.45);background:#fff;padding:8px}
+.ov{position:fixed;inset:0;z-index:2147483647;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.96);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.ov.open{display:flex}
+#gameOv{background:#030814;padding:0}
+#gameFrame{width:100%;height:100%;border:0;display:block}
+.vshell2{width:min(640px,100%);max-height:96vh;overflow:auto;display:flex;flex-direction:column}
+.vhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.vhead b{font-size:18px;font-weight:900}
+.vhead button{border:none;border-radius:14px;padding:10px 14px;font-weight:900;cursor:pointer;background:rgba(255,255,255,.14);color:#fff}
+#vidPlayer{width:100%;max-height:60vh;background:#000;border-radius:16px;display:block}
+#vidNote{margin-top:8px;opacity:.8;font-size:14px;display:none}
+#vidActions{display:none;flex-direction:column;gap:10px;margin-top:14px}
+#vidActions.show{display:flex}
+#vidHint{text-align:center;font-size:14px;opacity:.85;line-height:1.4}
+.act{border:none;border-radius:16px;padding:15px 16px;font-weight:900;font-size:16px;cursor:pointer;color:#fff}
+.act.scan{background:#4a90e2}.act.next{background:linear-gradient(135deg,#ffe9a8,#e0b25c 60%,#a06a1f);color:#3a2410}.act.ghost{background:rgba(255,255,255,.12)}
+#scanCard{width:min(480px,100%)}
+#scanVideo{width:100%;max-height:54vh;background:#000;border-radius:18px;object-fit:cover}
+.scanframe{position:relative}
+.scanframe::after{content:"";position:absolute;inset:12% 18%;border:3px solid rgba(255,224,138,.9);border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.25);pointer-events:none}
+#scanStatus{text-align:center;margin-top:10px;font-size:14px;opacity:.85;min-height:18px}
+#modSheet{width:min(560px,100%);border-radius:24px;border:1px solid rgba(255,255,255,.16);background:linear-gradient(160deg,rgba(20,35,70,.97),rgba(8,14,28,.99));padding:18px;max-height:90vh;overflow:auto}
+#modTitle{margin:0 0 12px;font-size:20px}
+#modBody{opacity:.9;line-height:1.45}
+#modActions{margin-top:16px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.mbtn{border:none;border-radius:14px;padding:12px 16px;font-weight:900;cursor:pointer;color:#fff;background:rgba(255,255,255,.12)}
+.mbtn.primary{background:#4a90e2}.mbtn.danger{background:#b91c1c}
+.ain{width:100%;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;padding:12px 14px;outline:none;font:inherit;margin-bottom:10px}
+.aerr{color:#ff8fa3;font-weight:900;min-height:20px;margin-bottom:10px}
+@page{size:105mm 148mm;margin:0}
+@media print{body{background:#fff}.toolbar,.help,#app,.ov,#fxCanvas,.back-link{display:none!important}.print-wrap{padding:0}.print-card{margin:0;box-shadow:none;border-radius:0}}
+</style>
+</head>
+<body data-print=front>
+<div class=toolbar id=toolbar>
+ <div class=toolbar-title>Романтический QR-квест • семейная карта сокровищ</div>
+ <div class=url-row><input id=baseUrl type=text placeholder="Публичный адрес, напр. https://имя.github.io/romantic-quest/"><button data-act=applybase>Применить адрес</button></div>
+ <div class=buttons>
+  <button data-act=setprint data-v=start>Стартовая карточка</button>
+  <button data-act=setprint data-v=front class=active>Лицевые стороны</button>
+  <button data-act=setprint data-v=back>Оборотные стороны</button>
+  <button data-act=setprint data-v=children>Детские карточки</button>
+  <button data-act=setprint data-v=final>Финальный QR</button>
+  <button data-act=go data-v="#start">Проверить старт</button>
+  <button data-act=go data-v="#c1">Проверить фрагмент 47</button>
+  <button data-act=go data-v="#alexey">Проверить Алексея</button>
+  <button data-act=go data-v="#polina">Проверить Полину</button>
+  <button data-act=go data-v="#love">Проверить финал</button>
+  <button data-act=backup>Ввести коды</button>
+  <button data-act=reset>Сбросить прогресс</button>
+  <button class=primary data-act=pdf>Печать / PDF</button>
+ </div>
+</div>
+<div class=help id=help>
+ <b>Игровой режим включён по умолчанию для всех.</b> Телефон именинницы трогать не нужно — она сканирует QR → игра → видео → «сканировать следующий».<br>
+ <b>Резервные коды фрагментов:</b> 47, 08, 93, 22, 61, 15, 84, 03.<br>
+ <b>Видео в папке media:</b> <code>start.mp4, c1.mp4 … c8.mp4, map.mp4, love.mp4, alexey-locked/unlocked.mp4, polina-locked/unlocked.mp4</code>.<br>
+ <b>Техрежим</b> (старые живые видео + панель печати на ЭТОМ устройстве): <code>?pq2_disable=9ноября</code>. Вернуть игру: <code>?pq2_enable=9ноября</code>. Админка: <code>?pq2_admin=9ноября</code>.
+ <div id=baseWarning></div>
+</div>
+<main class=print-wrap id=printView>
+ <section class=print-group id=startGroup></section>
+ <section class=print-group id=frontGroup></section>
+ <section class=print-group id=backGroup></section>
+ <section class=print-group id=childGroup></section>
+ <section class=print-group id=finalGroup></section>
+</main>
+<div id=app></div>
+<a class=back-link id=backLink data-act=showprint style=display:none>← Вернуться к печатным карточкам</a>
+
+<div class=ov id=gameOv><iframe id=gameFrame allow="autoplay; encrypted-media; fullscreen; vibrate"></iframe></div>
+<div class=ov id=vidOv><div class=vshell2>
+ <div class=vhead><b id=vidTitle></b><button data-act=vidclose>✕</button></div>
+ <video id=vidPlayer controls playsinline></video>
+ <div id=vidNote></div>
+ <div id=vidActions><div id=vidHint></div>
+  <button class="act scan" data-act=scan>📷 Сканировать следующий QR</button>
+  <button class="act next" data-act=vidnext>Продолжить ➜</button>
+  <button class="act ghost" data-act=vidclose>Готово</button>
+ </div>
+</div></div>
+<div class=ov id=scanOv><div id=scanCard>
+ <div class=scanframe><video id=scanVideo autoplay playsinline muted></video></div>
+ <div id=scanStatus>Наведи камеру на QR-код.</div>
+ <div class=actions style=margin-top:12px>
+  <button class="act ghost" data-act=scanphoto>📷 Сфотографировать QR</button>
+  <button class="act ghost" data-act=scanclose>Отмена</button>
+ </div>
+ <input type=file id=scanFile accept=image/* capture=environment hidden>
+</div></div>
+<div class=ov id=modOv><div id=modSheet>
+ <h3 id=modTitle></h3><div id=modBody></div>
+ <div id=modActions><button class=mbtn data-act=modclose>Закрыть</button><button class="mbtn primary" id=modOk data-act=modok style=display:none>ОК</button></div>
+</div></div>
+<canvas id=fxCanvas style=position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483646></canvas>
+
+<script>
+(function(){
+'use strict';
+var MODE_KEY='pq2_mode',PROG_KEY='pq2_progress_v1',AUTH_KEY='pq2_auth_session';
+var GAME_FILE='pokemon-test/index.html',MEDIA='media/',SECRET='9ноября';
+var FRAG=['47','08','93','22','61','15','84','03'];
+var V2F={c1:'47',c2:'08',c3:'93',c4:'22',c5:'61',c6:'15',c7:'84',c8:'03'};
+var TARGETS={
+ start:{kind:'intro',name:'Старт',video:MEDIA+'start.mp4'},
+ '47':{kind:'fragment',name:'Фрагмент 47',video:MEDIA+'c1.mp4',difficulty:'easy'},
+ '08':{kind:'fragment',name:'Фрагмент 08',video:MEDIA+'c2.mp4',difficulty:'easy'},
+ '93':{kind:'fragment',name:'Фрагмент 93',video:MEDIA+'c3.mp4',difficulty:'easy'},
+ '22':{kind:'fragment',name:'Фрагмент 22',video:MEDIA+'c4.mp4',difficulty:'normal'},
+ '61':{kind:'fragment',name:'Фрагмент 61',video:MEDIA+'c5.mp4',difficulty:'normal'},
+ '15':{kind:'fragment',name:'Фрагмент 15',video:MEDIA+'c6.mp4',difficulty:'normal'},
+ '84':{kind:'fragment',name:'Фрагмент 84',video:MEDIA+'c7.mp4',difficulty:'normal'},
+ '03':{kind:'fragment',name:'Фрагмент 03',video:MEDIA+'c8.mp4',difficulty:'hard'},
+ alexey:{kind:'child',name:'Лёша',locked:MEDIA+'alexey-locked.mp4',unlocked:MEDIA+'alexey-unlocked.mp4',difficulty:'normal'},
+ polina:{kind:'child',name:'Полина',locked:MEDIA+'polina-locked.mp4',unlocked:MEDIA+'polina-unlocked.mp4',difficulty:'normal'},
+ pillow:{kind:'checkpoint',name:'Подушка'},
+ love:{kind:'boss',name:'Главный сюрприз',video:MEDIA+'love.mp4',difficulty:'hard'}
+};
+var HUB={map:1,puzzle:1,'puzzle-test':1,'final-qr':1};
+var $=function(id){return document.getElementById(id)};
+function norm(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,'').replace(/ё/g,'е')}
+function game(){try{return localStorage.getItem(MODE_KEY)!=='off'}catch(e){return true}}
+function esc(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function escA(v){return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+
+function defP(){return{started:false,caught:{},puzzleDone:false,mapSeen:false,alexeyDone:false,polinaDone:false,pillowChecked:false,loveDone:false}}
+function loadP(){try{var r=localStorage.getItem(PROG_KEY);if(!r)return defP();var p=JSON.parse(r),d=defP();return Object.assign(d,p,{caught:Object.assign({},p.caught||{})})}catch(e){return defP()}}
+function saveP(p){try{localStorage.setItem(PROG_KEY,JSON.stringify(p))}catch(e){}}
+function allCaught(p){return FRAG.every(function(id){return !!p.caught[id]})}
+function done(p,c){if(c==='start')return !!p.started;var t=TARGETS[c];if(!t)return false;if(t.kind==='fragment')return !!p.caught[c];if(c==='alexey')return !!p.alexeyDone;if(c==='polina')return !!p.polinaDone;if(c==='pillow')return !!p.pillowChecked;if(c==='love')return !!p.loveDone;return false}
+function unlocked(p,c){if(c==='start')return true;var t=TARGETS[c];if(!t)return false;if(t.kind==='fragment')return true;if(c==='alexey')return !!p.puzzleDone;if(c==='polina')return !!p.alexeyDone;if(c==='pillow')return !!p.polinaDone;if(c==='love')return !!p.pillowChecked;return false}
+function mark(p,c){if(c==='start'){p.started=true;return}var t=TARGETS[c];if(!t)return;if(t.kind==='fragment')p.caught[c]=true;if(c==='alexey')p.alexeyDone=true;if(c==='polina')p.polinaDone=true;if(c==='pillow')p.pillowChecked=true;if(c==='love')p.loveDone=true}
+
+function canon(v){var s=String(v||'').trim().toLowerCase();if(!s)return '';if(/^[0-9]{1,2}$/.test(s))return ('0'+s).slice(-2);var m=s.match(/^c0*([1-8])$/);if(m)return V2F['c'+m[1]]||s;return s}
+function codeFromUrl(){var u=new URL(location.href);var c=u.searchParams.get('code')||u.searchParams.get('c')||u.searchParams.get('target')||u.searchParams.get('id');var h=decodeURIComponent(u.hash.replace(/^#/,''));if(!c)c=h;return c}
+function curCode(){return canon(codeFromUrl())}
+
+var activeCode=null,vidCb=null,modCb=null,vidCode=null;
+function anyOv(){return $('gameOv').classList.contains('open')||$('vidOv').classList.contains('open')||$('scanOv').classList.contains('open')||$('modOv').classList.contains('open')}
+
+function openMod(title,body,okText,ok){closeMod();$('modTitle').textContent=title||'';$('modBody').innerHTML=body||'';var b=$('modOk');if(okText){b.style.display='';b.textContent=okText;modCb=ok||null}else{b.style.display='none';modCb=null}$('modOv').classList.add('open')}
+function closeMod(){$('modOv').classList.remove('open');modCb=null}
+
+function openVid(src,title,code,cb){
+ if(!src){if(cb)cb();return}
+ vidCb=cb||null;vidCode=code||null;
+ $('vidTitle').textContent=title||'';$('vidNote').style.display='none';$('vidNote').textContent='';
+ $('vidActions').classList.remove('show');
+ var pl=$('vidPlayer');pl.src=src;pl.currentTime=0;pl.load();
+ $('vidOv').classList.add('open');
+ pl.play().catch(function(){});
+ pl.onerror=function(){$('vidNote').style.display='block';$('vidNote').textContent='Не удалось загрузить видео: '+src;showVidActions()};
+ pl.onended=function(){showVidActions()};
+}
+function showVidActions(){
+ var p=loadP(),h=$('vidHint');
+ if(vidCode==='love')h.textContent='Это финал. С днём рождения, любимая ❤️';
+ else if(vidCode&&TARGETS[vidCode]&&TARGETS[vidCode].kind==='fragment')h.textContent=allCaught(p)?'Все фрагменты пойманы! Жми «Продолжить».':'Видео закончилось. Найди следующий свёрток и отсканируй его, или нажми «Продолжить».';
+ else if(vidCode==='alexey')h.textContent='Ключ Алексея получен. Жми «Продолжить», чтобы найти Полину.';
+ else if(vidCode==='polina')h.textContent='Путь Полины получен. Жми «Продолжить» — иди к подушке.';
+ else h.textContent='Видео закончилось. Сканируй следующий QR или нажми «Продолжить».';
+ $('vidActions').classList.add('show');
+}
+function closeVid(){var pl=$('vidPlayer');pl.pause();pl.onended=null;pl.onerror=null;pl.removeAttribute('src');pl.load();$('vidOv').classList.remove('open');$('vidActions').classList.remove('show');var cb=vidCb;vidCb=null;vidCode=null;if(cb)cb()}
+function closeVidSilent(){var pl=$('vidPlayer');pl.pause();pl.onended=null;pl.onerror=null;pl.removeAttribute('src');pl.load();$('vidOv').classList.remove('open');$('vidActions').classList.remove('show');vidCb=null;vidCode=null}
+function continueAfter(code){
+ var p=loadP();
+ if(code==='love'){openMod('🏆 С днём рождения!','<div style=text-align:center><div style=font-size:72px>❤️</div><p>Ты прошла весь квест. Главный сюрприз открыт.</p></div>');return}
+ if(code==='pillow'){go('#love');return}
+ if(code==='polina'){go('#pillow');return}
+ if(code==='alexey'){go('#polina');return}
+ if(code==='map'){hubMap();return}
+ if(code&&TARGETS[code]&&TARGETS[code].kind==='fragment'){if(allCaught(p))go('#map');return}
+}
+
+function openGame(code){
+ var t=TARGETS[code];if(!t)return;closeGame();activeCode=code;
+ var src=GAME_FILE+'?target='+encodeURIComponent(code)+'&difficulty='+encodeURIComponent(t.difficulty||'normal')+'&embed=1&_c='+Date.now()+'&origin='+encodeURIComponent(location.origin);
+ $('gameFrame').src=src;$('gameOv').classList.add('open');
+}
+function closeGame(){$('gameOv').classList.remove('open');$('gameFrame').removeAttribute('src');activeCode=null}
+window.addEventListener('message',function(e){
+ if(location.origin&&e.origin!==location.origin)return;
+ var d=e.data||{};
+ if(d.type==='pq2_success'&&String(d.id)===String(activeCode)){
+  var code=String(d.id);var p=loadP();mark(p,code);saveP(p);closeGame();
+  var t=TARGETS[code];var src=t.unlocked||t.video;
+  if(src)openVid(src,t.name,code,function(){});
+  else if(code==='pillow')pillow();
+ }
+});
+
+function pillow(){openMod('Подушка','Аккуратно приподними подушку.<br>Там должен лежать финальный QR у серёжек.','Я посмотрела',function(){var p=loadP();p.pillowChecked=true;saveP(p);go('#love')})}
+function hubMap(){
+ var p=loadP();
+ if(!p.puzzleDone){if(allCaught(p)){p.puzzleDone=true;saveP(p)}else{openMod('Рано','Сначала поймай все 8 фрагментов.');return}}
+ if(!p.alexeyDone){if(!p.mapSeen){p.mapSeen=true;saveP(p);openVid(MEDIA+'map.mp4','Карта семьи','map',function(){go('#alexey')})}else go('#alexey');return}
+ if(!p.polinaDone){go('#polina');return}
+ if(!p.pillowChecked){pillow();return}
+ if(!p.loveDone){go('#love');return}
+ openVid(MEDIA+'love.mp4','Главный сюрприз','love');
+}
+function hubPuzzle(){var p=loadP();if(allCaught(p)){if(!p.puzzleDone){p.puzzleDone=true;saveP(p)}hubMap()}else openMod('Нужны фрагменты','Сначала поймай все 8 фрагментов.')}
+function handleHub(c){if(c==='map'||c==='final-qr')hubMap();else if(c==='puzzle'||c==='puzzle-test')hubPuzzle()}
+
+// ---------- ЕДИНСТВЕННЫЙ РОУТЕР ----------
+function render(){
+ var hash=(location.hash||'').replace(/^#/,'').toLowerCase();
+ var g=game();
+ document.body.classList.toggle('dark',!!hash);
+ $('backLink').style.display=hash?'block':'none';
+ if(!hash){
+   if(g){location.replace(location.pathname+location.search+'#start');return}
+   document.body.classList.remove('dark');showPanel();return;
+ }
+ hidePanel();
+ if(g)renderGame(hash);else renderClassic(hash);
+}
+function hidePanel(){$('toolbar').style.display='none';$('help').style.display='none';$('printView').style.display='none'}
+function showPanel(){$('toolbar').style.display='';$('help').style.display='';$('printView').style.display='';$('app').style.display='none'}
+
+function closeAllOv(){$('gameOv').classList.remove('open');$('gameFrame').removeAttribute('src');activeCode=null;closeVidSilent();closeScan();closeMod()}
+
+function renderGame(hash){
+ if(anyOv()&&curCode()===hash&&activeCode===hash)return; // оверлей уже для этого кода
+ var code=canon(hash);
+ if(!code){closeAllOv();return}
+ if(HUB[code]){closeAllOv();handleHub(code);return}
+ if(!TARGETS[code]){closeAllOv();idle('🤔','Не найдено','Ссылка не похожа на карточку квеста.');return}
+ var p=loadP();
+ if(done(p,code)){closeAllOv();idleDone(code);return}      // пройден -> холостой экран, НЕ реплей
+ if(!unlocked(p,code)){closeAllOv();var t2=TARGETS[code];if(t2.locked)openVid(t2.locked,t2.name+' — пока закрыто',null,function(){openMod('Закрыто','Сначала выполни предыдущие шаги.')});else openMod('Закрыто','Этот шаг ещё недоступен.');return}
+ if(code==='start'){closeAllOv();openVid(TARGETS.start.video,'Старт',null,function(){var q=loadP();q.started=true;saveP(q);openMod('Правила квеста','Сканируй QR внутри подарков.<br><br>Поймай фрагмент шаром (свайп вверх) — откроется видео, где искать следующий.')});return}
+ if(code==='pillow'){closeAllOv();pillow();return}
+ closeAllOv();openGame(code);
+}
+
+// холостой экран между шагами (никогда не пустота)
+function idle(art,title,text){
+ var app=$('app');app.style.display='flex';
+ app.innerHTML='<div class=stage><div class=art>'+art+'</div><h1 class=title>'+esc(title)+'</h1><div class=txt>'+esc(text)+'</div>'+
+  '<div class=actions><button class="play" data-act=scan>📷 Сканировать следующий QR</button><button class=sec data-act=backup>Ввести коды</button></div></div>';
+}
+function idleDone(code){
+ var t=TARGETS[code];var p=loadP();
+ if(t.kind==='fragment'){
+   if(allCaught(p))idle('🧩','Все фрагменты собраны','Жми «Продолжить» на видео или открой карту семьи.',) ,go('#map');
+   else idle('✨','Фрагмент '+code+' пойман','Этот свёрток уже открыт. Найди следующий подарок и отсканируй его QR, чтобы попасть в следующую игру.',);
+ } else if(code==='alexey')idle('🗝️','Лёша пройден','Теперь найди Полину и отсканируй её карточку.',);
+ else if(code==='polina')idle('💫','Полина пройдена','Иди к большой кровати и посмотри под подушку.',);
+ else if(code==='love')idle('💍','Финал открыт','С днём рождения, любимая ❤️',);
+ else idle('✅','Шаг пройден','Продолжай квест.',);
+}
+
+// классический (техрежим): живые видео + кнопки, без игры
+function renderClassic(hash){
+ var code=canon(hash),app=$('app');app.style.display='flex';closeAllOv();
+ if(HUB[code]){app.innerHTML=stage('🧩','Техрежим','В техрежиме пазл не собирается — видео играют напрямую по QR.',null,[['scan','📷 Сканировать QR'],['backup','Ввести коды'],['showprint','← К печати']]);return}
+ if(!TARGETS[code]){app.innerHTML=stage('🤔','Не найдено','Проверь QR-код.',null,[['showprint','← К печати']]);return}
+ var t=TARGETS[code];var src=t.unlocked||t.video;
+ var txt=t.kind==='fragment'?('Фрагмент '+code+'. Видео подскажет, где следующий свёрток.'):t.name+'.';
+ app.innerHTML=stage(t.kind==='fragment'?'✨':(code==='love'?'💍':'🎁'),t.name,txt,src,[['scan','📷 Сканировать следующий QR'],['backup','Ввести коды'],['showprint','← К печати']]);
+}
+function stage(art,title,text,videoSrc,acts){
+ return '<div class=stage><div class=art>'+art+'</div><h1 class=title>'+esc(title)+'</h1>'+
+  (videoSrc?'<div class=vshell><video controls playsinline preload=metadata src="'+escA(videoSrc)+'"></video></div>':'')+
+  '<div class=txt>'+esc(text)+'</div>'+
+  '<div class=actions>'+(acts||[]).map(function(a){return '<button class=sec data-act="'+a[0]+'">'+esc(a[1])+'</button>'}).join('')+'</div></div>';
+}
+
+// ---------- сканер ----------
+var cam=null,camRAF=null,det=null;
+function openScan(){$('scanOv').classList.add('open');$('scanStatus').textContent='Запускаю камеру…';startCam()}
+async function startCam(){
+ if('BarcodeDetector'in window&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+  try{cam=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});var v=$('scanVideo');v.srcObject=cam;await v.play();$('scanStatus').textContent='Наведи камеру на QR-код.';det=new BarcodeDetector({formats:['qr_code']});loop();return}catch(e){$('scanStatus').textContent='Камера недоступна. Нажми «Сфотографировать QR».'}
+ }else $('scanStatus').textContent='Нажми «Сфотографировать QR».';
+}
+function loop(){var v=$('scanVideo');async function tick(){if(!cam||!det)return;try{var c=await det.detect(v);if(c&&c.length){onScan(c[0].rawValue);return}}catch(e){}camRAF=requestAnimationFrame(tick)}camRAF=requestAnimationFrame(tick)}
+function closeScan(){$('scanOv').classList.remove('open');if(camRAF)cancelAnimationFrame(camRAF);camRAF=null;if(cam){cam.getTracks().forEach(function(t){t.stop()});cam=null}var v=$('scanVideo');if(v)v.srcObject=null;det=null}
+function onScan(text){var h=extractHash(text);closeScan();if(!h){openMod('Не распознан','QR не похож на карточку квеста.');return}go('#'+h)}
+function extractHash(t){var r=String(t||'').trim();if(!r)return null;try{var u=new URL(r);return u.hash?u.hash.replace('#','').toLowerCase():null}catch(e){var m=r.match(/#([a-z0-9-]+)/i);return m?m[1].toLowerCase():null}}
+function loadJsQR(){if(window.jsQR)return Promise.resolve(true);var s=['https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js','https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'];return s.reduce(function(ch,src){return ch.then(function(ok){return ok?true:new Promise(function(res){var sc=document.createElement('script');sc.src=src;sc.onload=function(){res(!!window.jsQR)};sc.onerror=function(){res(false)};document.head.appendChild(sc)})})},Promise.resolve(false))}
+$('scanFile').addEventListener('change',async function(e){var f=e.target.files&&e.target.files[0];if(!f)return;$('scanStatus').textContent='Распознаю QR…';var ok=await loadJsQR();if(!ok){$('scanStatus').textContent='Не удалось загрузить распознавание.';return}try{var img=new Image();img.src=URL.createObjectURL(f);await img.decode();var cv=document.createElement('canvas');cv.width=img.naturalWidth;cv.height=img.naturalHeight;var cx=cv.getContext('2d');cx.drawImage(img,0,0);var id=cx.getImageData(0,0,cv.width,cv.height);var code=window.jsQR?jsQR(id.data,cv.width,cv.height):null;if(code&&code.data)onScan(code.data);else $('scanStatus').textContent='QR не найден. Сфотографируй крупнее.'}catch(err){$('scanStatus').textContent='Не удалось обработать фото.'}finally{e.target.value=''}});
+
+// ---------- резервные коды ----------
+var CODE_MAP={'47':0,'08':1,'93':2,'22':3,'61':4,'15':5,'84':6,'03':7};
+function openBackup(){openMod('Восстановить фрагменты','<div class=url-row><input id=bc class=ain placeholder="Например: 47 08 93"><button class="mbtn primary" data-act=bc>Добавить</button></div><div id=bs style=min-height:18px;margin-top:8px></div>')}
+function applyBC(){var el=$('bc');if(!el)return;var v=el.value||'';var tk=v.match(/\d+/g)||[];var p=loadP(),add=0,unk=0;tk.forEach(function(t){var n=t.length===1?'0'+t:t;var i=CODE_MAP[n];if(i===undefined)unk++;else{var id=FRAG[i];if(!p.caught[id]){p.caught[id]=true;add++}}});saveP(p);var st=$('bs');if(allCaught(p)){closeMod();if(!p.puzzleDone){p.puzzleDone=true;saveP(p)}go('#map');return}if(st)st.textContent=add>0?'Фрагменты добавлены.':(unk>0?'Часть кодов не распознана.':'Уже сохранены.');el.value=''}
+
+function go(h){location.hash=h}
+function showPrint(){history.replaceState(null,'',location.pathname+location.search);render()}
+function resetAll(){if(!confirm('Сбросить весь прогресс?'))return;try{localStorage.removeItem(PROG_KEY)}catch(e){}render();alert('Сброшено.')}
+function printPdf(){markLast();setTimeout(function(){window.print()},120)}
+function setPrintMode(m){document.body.dataset.print=m;document.querySelectorAll('.toolbar button[data-act=setprint]').forEach(function(b){b.classList.toggle('active',b.dataset.v===m)});markLast()}
+
+// ---------- таблица действий (единый делегат, ноль onclick) ----------
+var ACT={
+ setprint:function(v){setPrintMode(v)},
+ go:function(v){go(v)},
+ applybase:function(){applyBaseUrl()},
+ backup:function(){openBackup()},
+ reset:function(){resetAll()},
+ pdf:function(){printPdf()},
+ showprint:function(){showPrint()},
+ scan:function(){openScan()},
+ scanclose:function(){closeScan();render()},
+ scanphoto:function(){document.getElementById('scanFile').click()},
+ vidclose:function(){closeVid();render()},
+ vidnext:function(){
+   var code=vidCode,p=loadP();
+   if(code&&TARGETS[code]&&TARGETS[code].kind==='fragment'&&!allCaught(p)){openMod('Следующий шаг','Все фрагменты ещё не собраны.<br><br>Найди следующий свёрток и отсканируй его кнопкой <b>«Сканировать следующий QR»</b>.');return}
+   closeVidSilent();continueAfter(code);render();
+ },
+ modclose:function(){closeMod()},
+ modok:function(){var cb=modCb;closeMod();if(cb)cb()},
+ bc:function(){applyBC()},
+ adm:function(v){adminAction(v)}
+};
+document.addEventListener('click',function(e){
+ var el=e.target.closest('[data-act]');if(!el)return;
+ var a=el.dataset.act,fn=ACT[a];if(fn){e.preventDefault();fn(el.dataset.v,el)}
+});
+$('modOv').addEventListener('click',function(e){if(e.target===$('modOv'))closeMod()});
+$('scanOv').addEventListener('click',function(e){if(e.target===$('scanOv')){closeScan();render()}});
+
+// ---------- печать ----------
+var CODE_LIST=['47','08','93','22','61','15','84','03'];
+var assets={finalQR:''};
+function getBase(){var i=$('baseUrl');var b=i?i.value.trim():'';if(!b)b=location.href.split('#')[0];return b.split('#')[0]}
+function cardUrl(h){return getBase()+'#'+h}
+function qrServer(t){return 'https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&margin=4&format=png&ecc=H&data='+encodeURIComponent(t||'')}
+function qrData(t,s){var c=document.createElement('canvas');c.width=s;c.height=s;new QRious({element:c,value:String(t||''),size:s,level:'H',foreground:'#2b1018',background:'#ffffff'});return c.toDataURL('image/png')}
+function buildFinal(){var qr=1000,pad=100,full=qr+pad*2;var c=document.createElement('canvas');c.width=full;c.height=full;var x=c.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle='#fff';x.fillRect(0,0,full,full);var q=document.createElement('canvas');q.width=qr;q.height=qr;new QRious({element:q,value:cardUrl('map'),size:qr,level:'H',foreground:'#2b1018',background:'#fff'});x.drawImage(q,pad,pad,qr,qr);return c.toDataURL('image/png')}
+function fragHtml(i){if(!assets.finalQR)return '<div class=piece-empty>QR готовится…</div>';var col=i%4,row=Math.floor(i/4);return '<div class=qr-fragment><img src="'+escA(assets.finalQR)+'" style="left:'+(-col*100)+'%;top:'+(-row*100)+'%"></div>'}
+function corners(i){var m=[];if(i===0)m.push(['tl','◸'],['lm','◁']);if(i===1)m.push(['tm','△']);if(i===2)m.push(['tm','△']);if(i===3)m.push(['tr','◹'],['rm','▷']);if(i===4)m.push(['bl','◺'],['lm','◁']);if(i===5)m.push(['bm','▽']);if(i===6)m.push(['bm','▽']);if(i===7)m.push(['br','◿'],['rm','▷']);return m.map(function(c){return '<span class="corner-mark '+c[0]+'">'+c[1]+'</span>'}).join('')}
+function markLast(){var c=[].slice.call(document.querySelectorAll('.print-card')).filter(function(e){return getComputedStyle(e).display!=='none'});c.forEach(function(x){x.classList.remove('last-visible')});if(c.length)c[c.length-1].classList.add('last-visible')}
+function applyBaseUrl(){prep();var e=$('baseWarning');if(e)e.innerHTML='<b>Готово.</b> QR обновлены, можно печатать.'}
+function prep(){assets.finalQR=window.QRious?buildFinal():qrServer(cardUrl('map'));renderPrint();updWarn()}
+function updWarn(){var e=$('baseWarning');if(!e)return;var b=getBase();if(!b){e.innerHTML='<b>Вставь публичный адрес</b> для QR.';return}if(b.indexOf('file://')===0){e.innerHTML='<b>Локальный файл.</b> Залей на GitHub, вставь публичный адрес, нажми «Применить».';return}e.innerHTML='<b>Адрес для QR:</b> '+esc(b)+'<br>#map / #alexey / #polina / #c1…#c8'}
+function genQrs(){document.querySelectorAll('.qr-box').forEach(function(box){if(box.dataset.g==='1')return;var u=box.dataset.url||'';if(!u)return;var s;if(window.QRious){try{s=qrData(u,512)}catch(e){s=qrServer(u)}}else s=qrServer(u);box.innerHTML='<img src="'+escA(s)+'" alt=QR>';box.dataset.g='1'})}
+function renderPrint(){
+ $('startGroup').innerHTML='<article class=print-card><div class=card-bg></div><div class=card-frame></div><div class=card-content><div><h1 class=card-title>Начни здесь</h1><div class=card-subtitle>Приключение начинается</div></div><div class=qr-box data-url="'+escA(cardUrl('start'))+'"></div><div><div class=qr-caption>Наведи камеру</div><div class=back-note>Собирай фрагменты карты</div></div></div></article>';
+ $('frontGroup').innerHTML=CODE_LIST.map(function(code,i){return '<article class=print-card><div class=card-bg></div><div class=card-frame></div><div class=card-content><div><h1 class=card-title>Звёздный фрагмент</h1><div class=card-subtitle>Отсканируй, чтобы сохранить часть карты</div></div><div class=qr-box data-url="'+escA(cardUrl('c'+(i+1)))+'"></div><div><div class=qr-caption>Фрагмент карты</div><div class=restore-code>Код: '+esc(code)+'</div></div></div></article>'}).join('');
+ $('backGroup').innerHTML=[0,1,2,3,4,5,6,7].map(function(i){return '<article class=print-card><div class="card-bg back-bg"></div><div class=card-frame></div><div class=card-content><div><h1 class=card-title>Часть карты</h1><div class=card-subtitle>Собери на столе</div></div><div class=fragment-window><div class=orientation-mark>↑ верх</div>'+fragHtml(i)+corners(i)+'</div><div class=back-note>Физический фрагмент портала</div></div></article>'}).join('');
+ $('childGroup').innerHTML='<article class=print-card><div class="card-bg child-bg"></div><div class=card-frame></div><div class=card-content><div><h1 class=card-title>Ключ Алексея</h1><div class=card-subtitle>Отсканируй, когда карта собрана</div></div><div class=qr-box data-url="'+escA(cardUrl('alexey'))+'"></div><div><div class=qr-caption>Семейный ключ</div><div class=back-note>Хранитель замка</div></div></div></article><article class=print-card><div class="card-bg child-bg"></div><div class=card-frame></div><div class=card-content><div><h1 class=card-title>Путь Полины</h1><div class=card-subtitle>Отсканируй после ключа Алексея</div></div><div class=qr-box data-url="'+escA(cardUrl('polina'))+'"></div><div><div class=qr-caption>Точный путь</div><div class=back-note>Хранительница направления</div></div></div></article>';
+ $('finalGroup').innerHTML='<article class=print-card><div class=card-bg></div><div class=card-frame></div><div class=card-content><div><h1 class=card-title>Финальный портал</h1><div class=card-subtitle>QR для страховки</div></div><div class=final-qr-print">'+(assets.finalQR?'<img src="'+escA(assets.finalQR)+'" alt=final>':'<div class=piece-empty>Генерация…</div>')+'</div><div><div class=qr-caption>Ведёт к семейному замку</div><div class=back-note>Откроется после сборки</div></div></div></article>';
+ genQrs();markLast();
+}
+
+// ---------- админка ----------
+function openLogin(){
+ if(sessionStorage.getItem(AUTH_KEY)==='1'){panel();return}
+ openMod('Вход в админ-панель','<form id=lf><input id=lu class=ain placeholder=Логин autocomplete=off><input id=lp class=ain type=password placeholder=Пароль autocomplete=off><div id=le class=aerr></div><div id=modActions><button type=button class=mbtn data-act=modclose>Закрыть</button><button type=submit class="mbtn primary">Войти</button></div></form>');
+ $('lf').addEventListener('submit',function(e){e.preventDefault();if(norm($('lu').value)===norm(SECRET)&&norm($('lp').value)===norm(SECRET)){try{sessionStorage.setItem(AUTH_KEY,'1')}catch(_){ }closeMod();panel()}else $('le').textContent='Неверный логин или пароль'});
+}
+function panel(){
+ var p=loadP(),g=game(),c=Object.keys(p.caught||{}).length;
+ openMod('Админ-панель квеста','<p>Режим: <b>'+(g?'Pokémon GO (праздник)':'технический')+'</b></p><p>Фрагментов: <b>'+c+'/8</b></p><p>Пазл: <b>'+(p.puzzleDone?'собран':'нет')+'</b></p><p>Лёша: <b>'+(p.alexeyDone?'да':'нет')+'</b> · Полина: <b>'+(p.polinaDone?'да':'нет')+'</b> · Подушка: <b>'+(p.pillowChecked?'да':'нет')+'</b> · Финал: <b>'+(p.loveDone?'да':'нет')+'</b></p><div style="display:grid;gap:8px;margin-top:12px"><button class=mbtn data-act=adm data-v=reset>Сбросить прогресс</button><button class=mbtn data-act=adm data-v=test>Тест: игра отдельно</button><button class="mbtn danger" data-act=adm data-v=toggle>'+(g?'Выключить игру (техрежим)':'Вернуть игру')+'</button></div>');
+}
+function adminAction(v){
+ if(v==='toggle'){try{if(game())localStorage.setItem(MODE_KEY,'off');else localStorage.removeItem(MODE_KEY)}catch(_){}location.reload();return}
+ if(v==='reset'){try{localStorage.removeItem(PROG_KEY)}catch(_){}closeMod();render();return}
+ if(v==='test'){closeMod();window.open(GAME_FILE+'?target=47&difficulty=easy&embed=1&_c='+Date.now()+'&origin='+encodeURIComponent(location.origin),'_blank')}
+}
+
+function emergency(){
+ var q=new URLSearchParams(location.search);
+ if(norm(q.get('pq2_disable'))===norm(SECRET)){try{localStorage.setItem(MODE_KEY,'off')}catch(_){};history.replaceState({},'',location.pathname+location.hash);location.reload();return true}
+ if(norm(q.get('pq2_enable'))===norm(SECRET)){try{localStorage.removeItem(MODE_KEY)}catch(_){};history.replaceState({},'',location.pathname+location.hash);location.reload();return true}
+ if(norm(q.get('pq2_reset'))===norm(SECRET)){try{localStorage.removeItem(PROG_KEY)}catch(_){};history.replaceState({},'',location.pathname+location.hash);location.reload();return true}
+ return false;
+}
+
+function boot(){
+ if(emergency())return;
+ var q=new URLSearchParams(location.search);
+ if(norm(q.get('pq2_admin'))===norm(SECRET)){openLogin();history.replaceState({},'',location.pathname+location.hash)}
+ if($('baseUrl')&&!$('baseUrl').value)$('baseUrl').value=location.href.split('#')[0];
+ prep();
+ render();
+ addEventListener('hashchange',function(){setTimeout(render,40)});
+ addEventListener('popstate',function(){setTimeout(render,40)});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+</script>
+</body>
+</html>
