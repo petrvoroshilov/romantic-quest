@@ -3,6 +3,7 @@
 
   const ADMIN_LOGIN = '9ноября';
   const ADMIN_PASSWORD = '9ноября';
+  const ADMIN_URL_SECRET = '9ноября';
 
   const MODE_KEY = 'pq2_mode';
   const PROG_KEY = 'pq2_progress_v1';
@@ -12,6 +13,17 @@
   const MEDIA = 'media/';
 
   const FRAGMENT_IDS = ['47', '08', '93', '22', '61', '15', '84', '03'];
+
+  const VIDEO_CODE_TO_FRAGMENT = {
+    c1: '47',
+    c2: '08',
+    c3: '93',
+    c4: '22',
+    c5: '61',
+    c6: '15',
+    c7: '84',
+    c8: '03'
+  };
 
   const TARGETS = {
     start: {
@@ -235,6 +247,18 @@
     return s;
   }
 
+  function canonicalCode(value) {
+    const code = normalizeCode(value);
+
+    const match = code.match(/^c0*([1-8])$/);
+    if (match) {
+      const key = 'c' + match[1];
+      return VIDEO_CODE_TO_FRAGMENT[key] || code;
+    }
+
+    return code;
+  }
+
   function getCodeFromUrl() {
     const u = new URL(location.href);
 
@@ -256,7 +280,7 @@
       code = hash;
     }
 
-    return normalizeCode(code);
+    return code;
   }
 
   function ensureStyles() {
@@ -463,7 +487,11 @@
     }
   }
 
-  function openLogin() {
+  function openLogin(fromExplicitUrl) {
+    if (!fromExplicitUrl) {
+      return;
+    }
+
     try {
       if (sessionStorage.getItem(AUTH_KEY) === '1') {
         openPanel();
@@ -833,7 +861,7 @@
     const videoLayer = $('pq2-video-layer');
     if (videoLayer && videoLayer.classList.contains('open')) return;
 
-    const code = getCodeFromUrl();
+    const code = canonicalCode(getCodeFromUrl());
 
     if (!code) {
       closeGame();
@@ -841,6 +869,10 @@
     }
 
     if (!TARGETS[code]) return;
+
+    if (gameOverlay && activeCode !== code) {
+      closeGame();
+    }
 
     if (activeCode === code && gameOverlay) return;
 
@@ -904,10 +936,31 @@
     });
   }
 
-  function startGuard() {
-    if (guardTimer) return;
+  function installMediaBlock() {
+    if (window.__PQ2_BLOCK_OLD_MEDIA) return;
 
+    window.__PQ2_BLOCK_OLD_MEDIA = true;
+
+    const originalPlay = HTMLMediaElement.prototype.play;
+
+    HTMLMediaElement.prototype.play = function () {
+      if (this.getAttribute && this.getAttribute('data-pq2') === 'bridge') {
+        return originalPlay.apply(this, arguments);
+      }
+
+      try {
+        this.pause();
+      } catch (e) {}
+
+      return Promise.resolve();
+    };
+  }
+
+  function startGuard() {
+    installMediaBlock();
     pauseForeignMedia();
+
+    if (guardTimer) return;
 
     guardTimer = setInterval(function () {
       if (!isGameMode()) return;
@@ -927,52 +980,9 @@
   }
 
   function bindSecretAdmin() {
-    const regex = /Романтический QR-квест|семейная карта сокровищ|Моя карта/i;
-
-    const candidates = Array.from(document.querySelectorAll('h1,h2,h3,header,div,span'))
-      .filter(function (el) {
-        const text = (el.textContent || '').trim();
-        return text.length > 0 && text.length < 160 && regex.test(text);
-      })
-      .slice(0, 8);
-
-    let taps = 0;
-    let timer = null;
-
-    function tap() {
-      clearTimeout(timer);
-      taps++;
-
-      timer = setTimeout(function () {
-        taps = 0;
-      }, 1200);
-
-      if (taps >= 7) {
-        taps = 0;
-        openLogin();
-      }
-    }
-
-    candidates.forEach(function (el) {
-      el.addEventListener('click', tap);
-
-      let longPressTimer = null;
-
-      el.addEventListener('pointerdown', function () {
-        longPressTimer = setTimeout(openLogin, 1500);
-      });
-
-      ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (eventName) {
-        el.addEventListener(eventName, function () {
-          if (longPressTimer) {
-            clearTimeout(longPressTimer);
-            longPressTimer = null;
-          }
-        });
-      });
-
-      el.style.userSelect = 'none';
-    });
+    // Секретный жест полностью отключён.
+    // Админка открывается только явной ссылкой:
+    // ?pq2_admin=9ноября
   }
 
   function onMessage(event) {
@@ -980,7 +990,7 @@
 
     const data = event.data || {};
 
-    if (data.type === 'pq2_success' && data.id === activeCode) {
+    if (data.type === 'pq2_success' && String(data.id) === activeCode) {
       completeTarget(String(data.id), !!data.perfect);
     }
   }
@@ -1013,8 +1023,11 @@
     bindSecretAdmin();
 
     const qs = new URLSearchParams(location.search);
-    if (qs.get('pq2_admin') === '1') {
-      openLogin();
+    const adminParam = normAuth(qs.get('pq2_admin'));
+
+    if (adminParam === normAuth(ADMIN_URL_SECRET)) {
+      openLogin(true);
+      history.replaceState({}, '', location.pathname + location.hash);
     }
 
     if (isGameMode()) {
